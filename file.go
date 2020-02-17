@@ -31,7 +31,7 @@ func Exists() bool {
 	}
 }
 
-func ParseFromFile() []string {
+func ReadFile() []string {
 	name, _ := GetFilePath()
 
 	b, err := ioutil.ReadFile(name)
@@ -48,4 +48,42 @@ func ParseFromFile() []string {
 	}
 
 	return strings.Split(string(b), sep)
+}
+
+func SaveFile(input []string) error {
+	name, _ := GetFilePath()
+
+	str := strings.Join(input, "\n")
+
+	return ioutil.WriteFile(name, []byte(str), 0644)
+}
+
+//Search Host from list
+func Search(input []string, pattern string) []string {
+	var out []string
+
+	for _, v := range input {
+		if strings.Contains(v, pattern) {
+			out = append(out, v)
+		}
+	}
+
+	return out
+}
+
+//Delete Host from list
+func Delete(input []string, pattern string) []string {
+	for k, v := range input {
+		if !strings.Contains(v, pattern) {
+			continue
+		}
+
+		if len(input) > k {
+			copy(input[k:], input[k+1:])
+		}
+
+		input = input[:len(input)-1]
+	}
+
+	return input
 }

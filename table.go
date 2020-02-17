@@ -12,6 +12,9 @@ func Dump(hosts []string) {
 	t.AddHeader("Name", "IP", "Type")
 
 	for _, v := range hosts {
+		if v == "" {
+			continue
+		}
 		h, err := NewHost(v)
 		if err != nil {
 			fmt.Println(err)

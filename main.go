@@ -10,6 +10,10 @@ func main() {
 		return
 	}
 
-	h := ParseFromFile()
+	h := ReadFile()
 	Dump(h)
+	println()
+	Dump(Search(h, "github"))
+	println()
+	Dump(Delete(h, "github"))
 }
