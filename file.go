@@ -73,17 +73,15 @@ func Search(input []string, pattern string) []string {
 
 //Delete Host from list
 func Delete(input []string, pattern string) []string {
-	for k, v := range input {
-		if !strings.Contains(v, pattern) {
+	var out []string
+
+	for _, v := range input {
+		if strings.Contains(v, pattern) {
 			continue
 		}
 
-		if len(input) > k {
-			copy(input[k:], input[k+1:])
-		}
-
-		input = input[:len(input)-1]
+		out = append(out, v)
 	}
 
-	return input
+	return out
 }
