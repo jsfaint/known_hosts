@@ -93,6 +93,8 @@ func listHost(hosts []string) {
 
 		if host.Name == "" {
 			fmt.Printf("%s\n", host.IP)
+		} else if host.IP == "" {
+			fmt.Printf("%s\n", host.Name)
 		} else {
 			fmt.Printf("%s, %s\n", host.Name, host.IP)
 		}
