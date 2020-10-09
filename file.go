@@ -4,7 +4,13 @@ import (
 	"io/ioutil"
 	"os"
 	"path/filepath"
+	"runtime"
 	"strings"
+)
+
+const (
+	dosFormat  string = "\r\n"
+	unixFormat string = "\n"
 )
 
 //GetFilePath returns the filepath of known_hosts
@@ -31,6 +37,24 @@ func Exists() bool {
 	}
 }
 
+func getLinebreak() string {
+	if runtime.GOOS == "windows" {
+		return dosFormat
+	} else {
+		return unixFormat
+	}
+}
+
+func stringToLine(input string) (lines []string) {
+	tmp := strings.Split(input, unixFormat)
+
+	for _, v := range tmp {
+		lines = append(lines, strings.TrimSpace(v))
+	}
+
+	return lines
+}
+
 func ReadFile() []string {
 	name, _ := GetFilePath()
 
@@ -39,21 +63,13 @@ func ReadFile() []string {
 		return nil
 	}
 
-	var sep string
-
-	if strings.Contains(string(b), "\r\n") {
-		sep = "\r\n"
-	} else {
-		sep = "\n"
-	}
-
-	return strings.Split(string(b), sep)
+	return stringToLine(string(b))
 }
 
 func SaveFile(input []string) error {
 	name, _ := GetFilePath()
 
-	str := strings.Join(input, "\n")
+	str := strings.Join(input, getLinebreak()) + getLinebreak()
 
 	return ioutil.WriteFile(name, []byte(str), 0644)
 }
