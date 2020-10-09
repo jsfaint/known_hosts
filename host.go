@@ -1,7 +1,7 @@
 package main
 
 import (
-	"errors"
+	"fmt"
 	"net"
 	"strings"
 )
@@ -39,7 +39,7 @@ NewHost create host struct from string, the input string format as below:
 func NewHost(input string) (host Host, err error) {
 	keys := strings.Split(input, " ")
 	if len(keys) != 3 {
-		return host, errors.New("invalid input string")
+		return host, fmt.Errorf("invalid host: '%s'", input)
 	}
 
 	host.getNameIP(keys[0])
