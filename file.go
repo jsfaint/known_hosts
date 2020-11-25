@@ -96,6 +96,10 @@ func Delete(input []string, pattern string) []string {
 			continue
 		}
 
+		if v == "" {
+			continue
+		}
+
 		out = append(out, v)
 	}
 
