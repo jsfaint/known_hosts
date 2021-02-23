@@ -7,7 +7,7 @@ Which supports multiple platforms, tested on Windows, Linux and macOS.
 ## Installation
 
 ```bash
-make
+go install github.com/jsfaint/known_hosts@latest
 ```
 
 ## Usage
