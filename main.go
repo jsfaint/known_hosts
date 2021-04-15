@@ -6,7 +6,6 @@ Aimming to support Windows/Linux/macOS.
 package main
 
 import (
-	"flag"
 	"fmt"
 	"os"
 )
@@ -32,9 +31,6 @@ func checkArgs(num int) {
 }
 
 func parseArgs() (opt opts) {
-	rmCmd := flag.NewFlagSet(cmdRemove, flag.ExitOnError)
-	searchCmd := flag.NewFlagSet(cmdSearch, flag.ExitOnError)
-
 	if len(os.Args) < 2 {
 		printUsage()
 		os.Exit(1)
@@ -43,17 +39,15 @@ func parseArgs() (opt opts) {
 	switch os.Args[1] {
 	case cmdRemove:
 		checkArgs(3)
-		rmCmd.Parse(os.Args[2:])
 		opt.operation = cmdRemove
-		opt.host = rmCmd.Arg(0)
+		opt.host = os.Args[2]
 	case cmdList:
 		checkArgs(2)
 		opt.operation = cmdList
 	case cmdSearch:
 		checkArgs(3)
-		searchCmd.Parse(os.Args[2:])
 		opt.operation = cmdSearch
-		opt.host = searchCmd.Arg(0)
+		opt.host = os.Args[2]
 	case cmdHelp:
 		printUsage()
 	default:
