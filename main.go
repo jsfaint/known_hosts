@@ -26,14 +26,12 @@ func checkArgs(num int) {
 	if len(os.Args) != num {
 		fmt.Println("Invalid parameter")
 		printUsage()
-		os.Exit(1)
 	}
 }
 
 func parseArgs() (opt opts) {
 	if len(os.Args) < 2 {
 		printUsage()
-		os.Exit(1)
 	}
 
 	switch os.Args[1] {
@@ -104,6 +102,8 @@ usage: known_hosts command [host]
     search  - Search host in known hosts
     help    - Show this message
     `)
+
+	os.Exit(1)
 }
 
 func main() {
