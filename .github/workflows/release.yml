@@ -1,8 +1,7 @@
-name: push
+name: Release
 on:
   release:
-    types:
-      - created
+    types: [created, published, edited]
 
 jobs:
   build:
@@ -11,9 +10,19 @@ jobs:
       - uses: actions/checkout@v2
 
       - name: Generate build files
-        uses: thatisuday/go-cross-build@v1
+        uses: thatisuday/go-cross-build@master
+        env:
+          CGO_ENABLED: 0
         with:
           platforms: 'linux/amd64, darwin/amd64, windows/amd64'
           compress: 'true'
           name: 'known_hosts'
           dest: 'build'
+          ldflags: '-w -s'
+
+      - name: Upload artifacts
+        uses: skx/github-action-publish-binaries@master
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+        with:
+          args: build/*
