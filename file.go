@@ -32,17 +32,17 @@ func Exists() bool {
 
 	if _, err := os.Stat(name); err == nil {
 		return true
-	} else {
-		return os.IsExist(err)
 	}
+
+	return os.IsExist(err)
 }
 
 func getLinebreak() string {
 	if runtime.GOOS == "windows" {
 		return dosFormat
-	} else {
-		return unixFormat
 	}
+
+	return unixFormat
 }
 
 func stringToLine(input string) (lines []string) {
@@ -55,6 +55,7 @@ func stringToLine(input string) (lines []string) {
 	return lines
 }
 
+//ReadFile read known_hosts file and returns a string slice
 func ReadFile() []string {
 	name, _ := GetFilePath()
 
@@ -66,6 +67,7 @@ func ReadFile() []string {
 	return stringToLine(string(b))
 }
 
+//SaveFile save the input string slice to known_hosts file
 func SaveFile(input []string) error {
 	name, _ := GetFilePath()
 
