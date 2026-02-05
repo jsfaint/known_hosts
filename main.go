@@ -113,7 +113,11 @@ func main() {
 
 	opt := parseArgs()
 
-	hosts := ReadFile()
+	hosts, err := ReadFile()
+	if err != nil {
+		fmt.Fprintf(os.Stderr, "Error: %v\n", err)
+		os.Exit(1)
+	}
 
 	switch opt.operation {
 	case cmdRemove:

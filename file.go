@@ -1,7 +1,7 @@
 package main
 
 import (
-	"io/ioutil"
+	"fmt"
 	"os"
 	"path/filepath"
 	"runtime"
@@ -30,11 +30,8 @@ func Exists() bool {
 		return false
 	}
 
-	if _, err := os.Stat(name); err == nil {
-		return true
-	}
-
-	return os.IsExist(err)
+	_, err = os.Stat(name)
+	return err == nil
 }
 
 func getLinebreak() string {
@@ -46,34 +43,46 @@ func getLinebreak() string {
 }
 
 func stringToLine(input string) (lines []string) {
-	tmp := strings.Split(input, unixFormat)
+	// Normalize line endings: handle \r\n (Windows), \n (Unix), \r (old Mac)
+	input = strings.ReplaceAll(input, "\r\n", "\n")
+	input = strings.ReplaceAll(input, "\r", "\n")
+	tmp := strings.Split(input, "\n")
 
 	for _, v := range tmp {
-		lines = append(lines, strings.TrimSpace(v))
+		v = strings.TrimSpace(v)
+		if v != "" { // Skip empty lines
+			lines = append(lines, v)
+		}
 	}
 
 	return lines
 }
 
 //ReadFile read known_hosts file and returns a string slice
-func ReadFile() []string {
-	name, _ := GetFilePath()
-
-	b, err := ioutil.ReadFile(name)
+func ReadFile() ([]string, error) {
+	name, err := GetFilePath()
 	if err != nil {
-		return nil
+		return nil, fmt.Errorf("failed to get known_hosts path: %w", err)
 	}
 
-	return stringToLine(string(b))
+	b, err := os.ReadFile(name)
+	if err != nil {
+		return nil, fmt.Errorf("failed to read known_hosts: %w", err)
+	}
+
+	return stringToLine(string(b)), nil
 }
 
 //SaveFile save the input string slice to known_hosts file
 func SaveFile(input []string) error {
-	name, _ := GetFilePath()
+	name, err := GetFilePath()
+	if err != nil {
+		return fmt.Errorf("failed to get known_hosts path: %w", err)
+	}
 
 	str := strings.Join(input, getLinebreak()) + getLinebreak()
 
-	return ioutil.WriteFile(name, []byte(str), 0644)
+	return os.WriteFile(name, []byte(str), 0644)
 }
 
 //Search Host from list
@@ -81,8 +90,15 @@ func Search(input []string, pattern string) []string {
 	var out []string
 
 	for _, v := range input {
-		if strings.Contains(v, pattern) {
-			out = append(out, v)
+		// Split by whitespace to extract host part
+		// Format: [name,]ip keytype publickey
+		parts := strings.Fields(v)
+		if len(parts) > 0 {
+			hostPart := parts[0]
+			// Only match in the host part (name or IP)
+			if strings.Contains(hostPart, pattern) {
+				out = append(out, v)
+			}
 		}
 	}
 
@@ -94,8 +110,15 @@ func Delete(input []string, pattern string) []string {
 	var out []string
 
 	for _, v := range input {
-		if strings.Contains(v, pattern) {
-			continue
+		// Split by whitespace to extract host part
+		// Format: [name,]ip keytype publickey
+		parts := strings.Fields(v)
+		if len(parts) > 0 {
+			hostPart := parts[0]
+			// Only match in the host part (name or IP)
+			if strings.Contains(hostPart, pattern) {
+				continue // Skip (delete) this entry
+			}
 		}
 
 		if v == "" {
