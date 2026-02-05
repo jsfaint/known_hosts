@@ -9,6 +9,8 @@ import (
 	"fmt"
 	"os"
 	"strings"
+
+	tea "github.com/charmbracelet/bubbletea"
 )
 
 type opts struct {
@@ -21,6 +23,7 @@ const (
 	cmdList   = "ls"
 	cmdHelp   = "help"
 	cmdSearch = "search"
+	cmdTUI    = "tui"
 )
 
 // validateHost validates host parameter
@@ -71,6 +74,9 @@ func parseArgs() (opt opts) {
 		}
 		opt.operation = cmdSearch
 		opt.host = os.Args[2]
+	case cmdTUI:
+		checkArgs(2)
+		opt.operation = cmdTUI
 	case cmdHelp:
 		printUsage()
 		os.Exit(0) // help is successful exit
@@ -128,9 +134,26 @@ usage: known_hosts command [host]
     ls      - List all known hosts
     rm      - Remove a host
     search  - Search host in known hosts
+    tui     - Interactive terminal UI
     help    - Show this message
     `)
 
+}
+
+func runTUI(hosts []string) {
+	p := tea.NewProgram(
+		Model{
+			hosts:    hosts,
+			filtered: hosts,
+			mode:     viewList,
+		},
+		tea.WithAltScreen(),
+	)
+
+	if _, err := p.Run(); err != nil {
+		fmt.Fprintf(os.Stderr, "Error running TUI: %v\n", err)
+		os.Exit(1)
+	}
 }
 
 func main() {
@@ -153,5 +176,7 @@ func main() {
 		listHost(hosts)
 	case cmdSearch:
 		searchHost(hosts, opt.host)
+	case cmdTUI:
+		runTUI(hosts)
 	}
 }
