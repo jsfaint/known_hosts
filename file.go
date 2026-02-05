@@ -13,7 +13,7 @@ const (
 	unixFormat string = "\n"
 )
 
-//GetFilePath returns the filepath of known_hosts
+// GetFilePath returns the filepath of known_hosts
 func GetFilePath() (string, error) {
 	h, err := os.UserHomeDir()
 	if err != nil {
@@ -23,7 +23,7 @@ func GetFilePath() (string, error) {
 	return filepath.Join(h, ".ssh", "known_hosts"), nil
 }
 
-//Exists returns the file existence
+// Exists returns the file existence
 func Exists() bool {
 	name, err := GetFilePath()
 	if err != nil {
@@ -58,7 +58,7 @@ func stringToLine(input string) (lines []string) {
 	return lines
 }
 
-//ReadFile read known_hosts file and returns a string slice
+// ReadFile read known_hosts file and returns a string slice
 func ReadFile() ([]string, error) {
 	name, err := GetFilePath()
 	if err != nil {
@@ -73,7 +73,7 @@ func ReadFile() ([]string, error) {
 	return stringToLine(string(b)), nil
 }
 
-//SaveFile save the input string slice to known_hosts file
+// SaveFile save the input string slice to known_hosts file
 func SaveFile(input []string) error {
 	name, err := GetFilePath()
 	if err != nil {
@@ -91,7 +91,7 @@ func SaveFile(input []string) error {
 	return os.WriteFile(name, []byte(str), perm)
 }
 
-//Search Host from list
+// Search Host from list
 func Search(input []string, pattern string) []string {
 	var out []string
 
@@ -111,7 +111,7 @@ func Search(input []string, pattern string) []string {
 	return out
 }
 
-//Delete Host from list
+// Delete Host from list
 func Delete(input []string, pattern string) []string {
 	var out []string
 

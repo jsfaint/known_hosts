@@ -6,7 +6,7 @@ import (
 	"strings"
 )
 
-//Host defines struct for host string in known_hosts file
+// Host defines struct for host string in known_hosts file
 type Host struct {
 	Name    string
 	IP      string
