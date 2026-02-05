@@ -80,9 +80,15 @@ func SaveFile(input []string) error {
 		return fmt.Errorf("failed to get known_hosts path: %w", err)
 	}
 
+	// Preserve original file permissions, use 0644 as default
+	perm := os.FileMode(0644)
+	if info, err := os.Stat(name); err == nil {
+		perm = info.Mode().Perm()
+	}
+
 	str := strings.Join(input, getLinebreak()) + getLinebreak()
 
-	return os.WriteFile(name, []byte(str), 0644)
+	return os.WriteFile(name, []byte(str), perm)
 }
 
 //Search Host from list

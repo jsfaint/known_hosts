@@ -8,6 +8,7 @@ package main
 import (
 	"fmt"
 	"os"
+	"strings"
 )
 
 type opts struct {
@@ -22,21 +23,41 @@ const (
 	cmdSearch = "search"
 )
 
+// validateHost validates host parameter
+func validateHost(host string) error {
+	if host == "" {
+		return fmt.Errorf("host cannot be empty")
+	}
+	if strings.ContainsAny(host, "\n\r") {
+		return fmt.Errorf("host cannot contain newline characters")
+	}
+	if len(host) > 1024 {
+		return fmt.Errorf("host too long (max 1024 characters)")
+	}
+	return nil
+}
+
 func checkArgs(num int) {
 	if len(os.Args) != num {
 		fmt.Println("Invalid parameter")
 		printUsage()
+		os.Exit(1)
 	}
 }
 
 func parseArgs() (opt opts) {
 	if len(os.Args) < 2 {
 		printUsage()
+		os.Exit(1)
 	}
 
 	switch os.Args[1] {
 	case cmdRemove:
 		checkArgs(3)
+		if err := validateHost(os.Args[2]); err != nil {
+			fmt.Fprintf(os.Stderr, "Error: %v\n", err)
+			os.Exit(1)
+		}
 		opt.operation = cmdRemove
 		opt.host = os.Args[2]
 	case cmdList:
@@ -44,13 +65,19 @@ func parseArgs() (opt opts) {
 		opt.operation = cmdList
 	case cmdSearch:
 		checkArgs(3)
+		if err := validateHost(os.Args[2]); err != nil {
+			fmt.Fprintf(os.Stderr, "Error: %v\n", err)
+			os.Exit(1)
+		}
 		opt.operation = cmdSearch
 		opt.host = os.Args[2]
 	case cmdHelp:
 		printUsage()
+		os.Exit(0) // help is successful exit
 	default:
 		fmt.Println("Invalid parameter")
 		printUsage()
+		os.Exit(1)
 	}
 
 	return opt
@@ -60,7 +87,8 @@ func deleteHost(hosts []string, host string) {
 	fmt.Println("Removing host: ", host)
 	hosts = Delete(hosts, host)
 	if err := SaveFile(hosts); err != nil {
-		fmt.Println("Delete host fail")
+		fmt.Fprintf(os.Stderr, "Error: failed to delete host: %v\n", err)
+		os.Exit(1)
 	}
 }
 
@@ -103,7 +131,6 @@ usage: known_hosts command [host]
     help    - Show this message
     `)
 
-	os.Exit(1)
 }
 
 func main() {
