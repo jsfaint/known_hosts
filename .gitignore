@@ -1,1 +1,5 @@
+# Binaries
 known_hosts*
+
+# Trellis workflow directory (local development configuration)
+.trellis/
