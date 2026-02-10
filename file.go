@@ -112,12 +112,24 @@ func Search(input []string, pattern string) []string {
 }
 
 // Delete Host from list
+// pattern can be either:
+// - A full host line (for exact match deletion)
+// - A host name or IP (for fuzzy match deletion of the host part)
 func Delete(input []string, pattern string) []string {
 	var out []string
 
 	for _, v := range input {
-		// Split by whitespace to extract host part
-		// Format: [name,]ip keytype publickey
+		// Skip empty lines
+		if v == "" {
+			continue
+		}
+
+		// First check for exact match with full line
+		if v == pattern {
+			continue // Skip (delete) this exact entry
+		}
+
+		// Then check for fuzzy match with host part
 		parts := strings.Fields(v)
 		if len(parts) > 0 {
 			hostPart := parts[0]
@@ -125,10 +137,6 @@ func Delete(input []string, pattern string) []string {
 			if strings.Contains(hostPart, pattern) {
 				continue // Skip (delete) this entry
 			}
-		}
-
-		if v == "" {
-			continue
 		}
 
 		out = append(out, v)

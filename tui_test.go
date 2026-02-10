@@ -144,7 +144,7 @@ func TestModelView(t *testing.T) {
 				cursor:   0,
 				mode:     viewConfirmDelete,
 			},
-			wantContains: []string{"Confirm Deletion", "Delete this host?", "github.com", "Press 'y' to confirm"},
+			wantContains: []string{"Confirm Deletion", "Delete this host?", "github.com", "Press Enter or 'y' to confirm"},
 		},
 		{
 			name: "error view",
@@ -350,7 +350,7 @@ func TestHandleConfirmKeyMsg(t *testing.T) {
 			},
 			msg:          tea.KeyMsg{Type: tea.KeyRunes, Runes: []rune{'y'}},
 			wantMode:     viewList,
-			wantFiltered: 1, // One host deleted from filtered
+			wantFiltered: 0, // All filtered hosts deleted (exact match with full line)
 		},
 		{
 					name: "confirm deletion with Y",
@@ -362,7 +362,7 @@ func TestHandleConfirmKeyMsg(t *testing.T) {
 					},
 					msg:         tea.KeyMsg{Type: tea.KeyRunes, Runes: []rune{'Y'}},
 					wantMode:    viewList,
-					wantFiltered: 1, // Delete function matches hostPart, not full line
+					wantFiltered: 0, // Delete function matches exact full line
 				},
 		{
 			name: "cancel deletion with n",
