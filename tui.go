@@ -177,7 +177,7 @@ func (m Model) renderConfirmDelete() string {
 	s += titleStyle.Render("Confirm Deletion") + "\n\n"
 	s += normalStyle.Render("Delete this host?\n\n")
 	s += selectedStyle.Render(hostDisplay) + "\n\n"
-	s += footerStyle.Render("Press 'y' to confirm, 'n' to cancel")
+	s += footerStyle.Render("Press Enter or 'y' to confirm, 'n' to cancel")
 
 	return s
 }
@@ -259,6 +259,15 @@ func (m Model) handleListKeyMsg(msg tea.KeyMsg) (tea.Model, tea.Cmd) {
 // handleConfirmKeyMsg processes keys in confirmation view
 func (m Model) handleConfirmKeyMsg(msg tea.KeyMsg) (tea.Model, tea.Cmd) {
 	switch msg.Type {
+	case tea.KeyEnter:
+		hostLine := m.filtered[m.cursor]
+		m.hosts = Delete(m.hosts, hostLine)
+		m.filtered = Delete(m.filtered, hostLine)
+		if m.cursor >= len(m.filtered) {
+			m.cursor = len(m.filtered) - 1
+		}
+		m.mode = viewList
+		return m, saveHosts(m.hosts)
 	case tea.KeyRunes:
 		switch msg.String() {
 		case "y", "Y":
