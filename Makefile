@@ -18,4 +18,7 @@ mac:
 
 clean:
 	go clean
-	$(RM) -f $(TARGET)*
+	$(RM) $(TARGET)*
+
+test:
+	go test ./...
