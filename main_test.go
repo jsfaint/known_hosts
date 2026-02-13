@@ -96,7 +96,7 @@ func TestListHost(t *testing.T) {
 			os.Stdout = old
 
 			var buf bytes.Buffer
-			buf.ReadFrom(r)
+			_, _ = buf.ReadFrom(r)
 			output := buf.String()
 
 			// Check that expected strings are present
@@ -155,7 +155,7 @@ func TestSearchHost(t *testing.T) {
 			os.Stdout = old
 
 			var buf bytes.Buffer
-			buf.ReadFrom(r)
+			_, _ = buf.ReadFrom(r)
 			output := buf.String()
 
 			for _, expected := range tt.wantContains {
@@ -202,7 +202,7 @@ func TestDeleteHost(t *testing.T) {
 		os.Stdout = old
 
 		var buf bytes.Buffer
-		buf.ReadFrom(r)
+		_, _ = buf.ReadFrom(r)
 		output := buf.String()
 
 		if !strings.Contains(output, "Removing host:") {
@@ -258,7 +258,7 @@ func TestDeleteHost(t *testing.T) {
 		if err := os.Chmod(sshDir, 0444); err != nil {
 			t.Fatalf("Failed to chmod directory: %v", err)
 		}
-		defer os.Chmod(sshDir, 0755)
+		defer func() { _ = os.Chmod(sshDir, 0755) }()
 
 		// This test is skipped because deleteHost calls os.Exit(1) on error
 		// which cannot be easily tested in unit tests
@@ -278,7 +278,7 @@ func TestPrintUsage(t *testing.T) {
 	os.Stdout = old
 
 	var buf bytes.Buffer
-	buf.ReadFrom(r)
+	_, _ = buf.ReadFrom(r)
 	output := buf.String()
 
 	expectedCommands := []string{"ls", "rm", "search", "tui", "help"}

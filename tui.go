@@ -12,7 +12,6 @@ type Model struct {
 	hosts      []string     // List of all hosts
 	filtered   []string     // Filtered hosts (for search)
 	cursor     int          // Current selected index
-	selected   []int        // Selected indices for deletion
 	search     string       // Current search query
 	isSearching bool        // Whether in search mode
 	mode       viewMode     // Current view mode
