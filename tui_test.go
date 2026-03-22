@@ -498,9 +498,8 @@ func TestLoadHosts(t *testing.T) {
 			t.Fatalf("Failed to create .ssh directory: %v", err)
 		}
 
-		oldHome := os.Getenv("HOME")
-		os.Setenv("HOME", tmpDir)
-		defer os.Setenv("HOME", oldHome)
+		restoreHome := setHomeDir(t, tmpDir)
+		defer restoreHome()
 
 		// Create test file
 		testContent := "github.com ssh-rsa key1\ngitlab.com ssh-rsa key2\n"
@@ -524,9 +523,8 @@ func TestLoadHosts(t *testing.T) {
 	t.Run("load with error", func(t *testing.T) {
 		tmpDir := t.TempDir()
 
-		oldHome := os.Getenv("HOME")
-		os.Setenv("HOME", tmpDir)
-		defer os.Setenv("HOME", oldHome)
+		restoreHome := setHomeDir(t, tmpDir)
+		defer restoreHome()
 
 		// Don't create .ssh directory, this should cause an error
 		cmd := loadHosts()
@@ -553,9 +551,8 @@ func TestSaveHosts(t *testing.T) {
 		t.Fatalf("Failed to create .ssh directory: %v", err)
 	}
 
-	oldHome := os.Getenv("HOME")
-	os.Setenv("HOME", tmpDir)
-	defer os.Setenv("HOME", oldHome)
+	restoreHome := setHomeDir(t, tmpDir)
+	defer restoreHome()
 
 	hosts := []string{"github.com ssh-rsa key", "gitlab.com ssh-rsa key"}
 

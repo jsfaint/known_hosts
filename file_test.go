@@ -4,6 +4,7 @@ import (
 	"os"
 	"path/filepath"
 	"reflect"
+	"runtime"
 	"testing"
 )
 
@@ -107,10 +108,9 @@ func TestReadFile(t *testing.T) {
 		t.Fatalf("Failed to create test file: %v", err)
 	}
 
-	// Temporarily change HOME to point to our test directory
-	oldHome := os.Getenv("HOME")
-	os.Setenv("HOME", tmpDir)
-	defer os.Setenv("HOME", oldHome)
+	// Temporarily change home directory to point to our test directory
+	restoreHome := setHomeDir(t, tmpDir)
+	defer restoreHome()
 
 	got, err := ReadFile()
 	if err != nil {
@@ -125,9 +125,8 @@ func TestReadFile(t *testing.T) {
 
 func TestReadFile_NotExists(t *testing.T) {
 	tmpDir := t.TempDir()
-	oldHome := os.Getenv("HOME")
-	os.Setenv("HOME", tmpDir)
-	defer os.Setenv("HOME", oldHome)
+	restoreHome := setHomeDir(t, tmpDir)
+	defer restoreHome()
 
 	_, err := ReadFile()
 	if err == nil {
@@ -145,10 +144,9 @@ func TestSaveFile(t *testing.T) {
 		t.Fatalf("Failed to create .ssh directory: %v", err)
 	}
 
-	// Temporarily change HOME to point to our test directory
-	oldHome := os.Getenv("HOME")
-	os.Setenv("HOME", tmpDir)
-	defer os.Setenv("HOME", oldHome)
+	// Temporarily change home directory to point to our test directory
+	restoreHome := setHomeDir(t, tmpDir)
+	defer restoreHome()
 
 	input := []string{
 		"github.com ssh-rsa AAAAB3NzaC1yc2EAAAADAQABAAABAQC",
@@ -179,6 +177,11 @@ func TestSaveFile(t *testing.T) {
 }
 
 func TestSaveFile_PreservePermissions(t *testing.T) {
+	// Skip on Windows as it doesn't support Unix-style file permissions
+	if runtime.GOOS == "windows" {
+		t.Skip("Skipping on Windows - Unix-style file permissions not supported")
+	}
+
 	tmpDir := t.TempDir()
 	sshDir := filepath.Join(tmpDir, ".ssh")
 	testFile := filepath.Join(sshDir, "known_hosts")
@@ -188,9 +191,8 @@ func TestSaveFile_PreservePermissions(t *testing.T) {
 		t.Fatalf("Failed to create .ssh directory: %v", err)
 	}
 
-	oldHome := os.Getenv("HOME")
-	os.Setenv("HOME", tmpDir)
-	defer os.Setenv("HOME", oldHome)
+	restoreHome := setHomeDir(t, tmpDir)
+	defer restoreHome()
 
 	// Create file with specific permissions
 	testContent := "test ssh-rsa key"
