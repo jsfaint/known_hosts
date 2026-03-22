@@ -141,37 +141,41 @@ func Search(input []string, pattern string) []string {
 
 // Delete removes hosts from the list based on the pattern.
 //
-// This function supports two parameter formats to accommodate different use cases:
+// This function supports two parameter formats with SECURITY-FIRST matching:
 //
-// Mode 1: Exact Match (Priority 1)
+// Mode 1: Exact Full Line Match (Priority 1)
 //   Input: Full host line including public key
 //   Example: "github.com ssh-rsa AAAAB3NzaC1yc2E..."
 //   Use case: TUI deletion, when you have the complete host entry
 //   Behavior: String equality check on the full line
 //
-// Mode 2: Fuzzy Match (Priority 2, fallback)
-//   Input: Hostname or IP address only
-//   Example: "github.com" or "192.168.1.1"
+// Mode 2: Exact Host Part Match (Priority 2, fallback)
+//   Input: Hostname or IP address only (NO fuzzy matching)
+//   Example: "github.com" or "192.168.1.1" or "myserver,192.168.1.1"
 //   Use case: CLI deletion, when you only know the host identifier
-//   Behavior: Contains match on the host part (before first space)
+//   Behavior: Exact match on the host part (before first space)
+//
+// SECURITY IMPORTANT:
+// - CLI mode uses EXACT match only to prevent accidental bulk deletion
+// - Pattern "git" will NOT delete "github.com" or "gitlab.com"
+// - Use "github.com" to delete exactly that host
+// - Use "myserver,192.168.1.1" to delete that specific entry
 //
 // Matching Priority:
 // 1. Exact full line match is checked first
-// 2. Fuzzy hostname match is checked if exact match fails
-//
-// Design Rationale:
-// The dual-mode design allows this single function to serve both TUI and CLI usage patterns:
-// - TUI operates on complete host entries for precise control
-// - CLI typically uses short hostnames for convenience
-// Priority order ensures TUI's exact-match intent is honored first
+// 2. Exact host part match is checked if exact match fails
 //
 // Examples:
 //
 //   // TUI usage (exact match)
 //   hosts := Delete(hosts, "github.com ssh-rsa AAAAB3NzaC1yc2E...")
 //
-//   // CLI usage (fuzzy match)
+//   // CLI usage (exact host match)
 //   hosts := Delete(hosts, "github.com")
+//   // This will NOT delete "gitlab.com" or "github.com.cn"
+//
+//   // CLI usage with hostname,IP format
+//   hosts := Delete(hosts, "myserver,192.168.1.1")
 func Delete(input []string, pattern string) []string {
 	var out []string
 
@@ -186,12 +190,13 @@ func Delete(input []string, pattern string) []string {
 			continue // Skip (delete) this exact entry
 		}
 
-		// Priority 2: Fuzzy match on host part (CLI usage)
+		// Priority 2: Exact match on host part (CLI usage) - SECURITY: NO fuzzy matching
 		parts := strings.Fields(v)
 		if len(parts) > 0 {
 			hostPart := parts[0]
-			// Only match in the host part (name or IP)
-			if strings.Contains(hostPart, pattern) {
+			// SECURITY: Use exact match instead of strings.Contains
+			// This prevents "git" from matching "github.com" or "gitlab.com"
+			if hostPart == pattern {
 				continue // Skip (delete) this entry
 			}
 		}

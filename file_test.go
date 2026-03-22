@@ -263,12 +263,14 @@ func TestDelete(t *testing.T) {
 		{"first", args{[]string{"1", "2", "3", "4", "5"}, "1"}, []string{"2", "3", "4", "5"}},
 		{"last", args{[]string{"1", "2", "3", "4", "5"}, "5"}, []string{"1", "2", "3", "4"}},
 		{"middle", args{[]string{"1", "2", "3", "4", "5"}, "3"}, []string{"1", "2", "4", "5"}},
-		{"multi-1", args{[]string{"11", "11", "33", "44", "55"}, "1"}, []string{"33", "44", "55"}},
-		{"multi-2", args{[]string{"11", "22", "11", "44", "55"}, "1"}, []string{"22", "44", "55"}},
+		// SECURITY: 模糊匹配已移除，以下测试更新为精确匹配
+		{"multi-1 exact", args{[]string{"11", "11", "33", "44", "55"}, "11"}, []string{"33", "44", "55"}},
+		{"multi-2 exact", args{[]string{"11", "22", "11", "44", "55"}, "11"}, []string{"22", "44", "55"}},
 		{"empty input", args{[]string{}, "1"}, []string{}},
 		{"not found", args{[]string{"1", "2", "3"}, "99"}, []string{"1", "2", "3"}},
 		{"delete all", args{[]string{"1", "1", "1"}, "1"}, []string{}},
-		{"full host line", args{[]string{"github.com ssh-rsa AAAAB3NzaC1yc2EAAAADAQABAAABAQC", "gitlab.com ssh-rsa key"}, "github"}, []string{"gitlab.com ssh-rsa key"}},
+		// SECURITY: 更新为精确匹配，不使用模糊匹配
+		{"exact host match", args{[]string{"github.com ssh-rsa AAAAB3NzaC1yc2EAAAADAQABAAABAQC", "gitlab.com ssh-rsa key"}, "github.com"}, []string{"gitlab.com ssh-rsa key"}},
 		{"empty string skip", args{[]string{"1", "", "2"}, "1"}, []string{"2"}},
 	}
 
