@@ -1,6 +1,7 @@
 package main
 
 import (
+	"strings"
 	"time"
 
 	tea "github.com/charmbracelet/bubbletea"
@@ -9,13 +10,13 @@ import (
 
 // Model represents the TUI application state
 type Model struct {
-	hosts      []string     // List of all hosts
-	filtered   []string     // Filtered hosts (for search)
-	cursor     int          // Current selected index
-	search     string       // Current search query
-	isSearching bool        // Whether in search mode
-	mode       viewMode     // Current view mode
-	err        error        // Error state
+	hosts       []string // List of all hosts
+	filtered    []string // Filtered hosts (for search)
+	cursor      int      // Current selected index
+	search      string   // Current search query
+	isSearching bool     // Whether in search mode
+	mode        viewMode // Current view mode
+	err         error    // Error state
 }
 
 type viewMode int
@@ -103,21 +104,21 @@ func (m Model) renderError() string {
 
 // renderList displays the host list
 func (m Model) renderList() string {
-	var s string
+	var s strings.Builder
 
 	// Title
-	s += titleStyle.Render("Known Hosts Manager") + "\n\n"
+	s.WriteString(titleStyle.Render("Known Hosts Manager") + "\n\n")
 
 	// Search bar
 	if m.isSearching {
-		s += searchStyle.Render("Search: ") + m.search + "_\n\n"
+		s.WriteString(searchStyle.Render("Search: ") + m.search + "_\n\n")
 	} else if m.search != "" {
-		s += searchStyle.Render("Filter: ") + m.search + "\n\n"
+		s.WriteString(searchStyle.Render("Filter: ") + m.search + "\n\n")
 	}
 
 	// Host list
 	if len(m.filtered) == 0 {
-		s += normalStyle.Render("No hosts found")
+		s.WriteString(normalStyle.Render("No hosts found"))
 	} else {
 		for i, hostLine := range m.filtered {
 			cursor := " "
@@ -141,18 +142,18 @@ func (m Model) renderList() string {
 
 			line := cursor + " " + hostDisplay
 			if i == m.cursor {
-				s += selectedStyle.Render(line)
+				s.WriteString(selectedStyle.Render(line))
 			} else {
-				s += normalStyle.Render(line)
+				s.WriteString(normalStyle.Render(line))
 			}
-			s += "\n"
+			s.WriteString("\n")
 		}
 	}
 
 	// Footer
-	s += "\n" + footerStyle.Render("Controls: ↑↓ navigate | d delete | / search | q quit")
+	s.WriteString("\n" + footerStyle.Render("Controls: ↑↓ navigate | d delete | / search | q quit"))
 
-	return s
+	return s.String()
 }
 
 // renderConfirmDelete displays delete confirmation

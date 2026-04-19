@@ -38,28 +38,28 @@ func TestValidateHost(t *testing.T) {
 
 func TestListHost(t *testing.T) {
 	tests := []struct {
-		name string
-		hosts []string
+		name         string
+		hosts        []string
 		wantContains []string
 	}{
 		{
-			name: "empty list",
-			hosts: []string{},
+			name:         "empty list",
+			hosts:        []string{},
 			wantContains: []string{"Current known hosts:"},
 		},
 		{
-			name: "single host with name only",
-			hosts: []string{"github.com ssh-rsa AAAAB3NzaC1yc2EAAAADAQABAAABAQC"},
+			name:         "single host with name only",
+			hosts:        []string{"github.com ssh-rsa AAAAB3NzaC1yc2EAAAADAQABAAABAQC"},
 			wantContains: []string{"Current known hosts:", "github.com"},
 		},
 		{
-			name: "single host with IP only",
-			hosts: []string{"192.168.1.1 ssh-rsa AAAAB3NzaC1yc2EAAAADAQABAAABAQC"},
+			name:         "single host with IP only",
+			hosts:        []string{"192.168.1.1 ssh-rsa AAAAB3NzaC1yc2EAAAADAQABAAABAQC"},
 			wantContains: []string{"Current known hosts:", "192.168.1.1"},
 		},
 		{
-			name: "host with both name and IP",
-			hosts: []string{"myserver,192.168.1.1 ssh-rsa AAAAB3NzaC1yc2EAAAADAQABAAABAQC"},
+			name:         "host with both name and IP",
+			hosts:        []string{"myserver,192.168.1.1 ssh-rsa AAAAB3NzaC1yc2EAAAADAQABAAABAQC"},
 			wantContains: []string{"Current known hosts:", "myserver, 192.168.1.1"},
 		},
 		{
@@ -72,13 +72,13 @@ func TestListHost(t *testing.T) {
 			wantContains: []string{"github.com", "gitlab.com", "192.168.1.1"},
 		},
 		{
-			name: "host with invalid format",
-			hosts: []string{"invalid-host", "github.com ssh-rsa key"},
+			name:         "host with invalid format",
+			hosts:        []string{"invalid-host", "github.com ssh-rsa key"},
 			wantContains: []string{"github.com"},
 		},
 		{
-			name: "skip empty lines",
-			hosts: []string{"", "github.com ssh-rsa key", ""},
+			name:         "skip empty lines",
+			hosts:        []string{"", "github.com ssh-rsa key", ""},
 			wantContains: []string{"github.com"},
 		},
 	}
@@ -111,33 +111,33 @@ func TestListHost(t *testing.T) {
 
 func TestSearchHost(t *testing.T) {
 	tests := []struct {
-		name       string
-		hosts      []string
-		searchTerm string
+		name         string
+		hosts        []string
+		searchTerm   string
 		wantContains []string
 	}{
 		{
-			name:       "search found",
-			hosts:      []string{"github.com ssh-rsa key1", "gitlab.com ssh-rsa key2"},
-			searchTerm: "github",
+			name:         "search found",
+			hosts:        []string{"github.com ssh-rsa key1", "gitlab.com ssh-rsa key2"},
+			searchTerm:   "github",
 			wantContains: []string{"github.com"},
 		},
 		{
-			name:       "search not found",
-			hosts:      []string{"github.com ssh-rsa key1", "gitlab.com ssh-rsa key2"},
-			searchTerm: "bitbucket",
+			name:         "search not found",
+			hosts:        []string{"github.com ssh-rsa key1", "gitlab.com ssh-rsa key2"},
+			searchTerm:   "bitbucket",
 			wantContains: []string{"Current known hosts:"},
 		},
 		{
-			name:       "search IP",
-			hosts:      []string{"192.168.1.1 ssh-rsa key1", "192.168.1.2 ssh-rsa key2"},
-			searchTerm: "192.168.1.1",
+			name:         "search IP",
+			hosts:        []string{"192.168.1.1 ssh-rsa key1", "192.168.1.2 ssh-rsa key2"},
+			searchTerm:   "192.168.1.1",
 			wantContains: []string{"192.168.1.1"},
 		},
 		{
-			name:       "search partial",
-			hosts:      []string{"github.com ssh-rsa key", "gitlab.com ssh-rsa key"},
-			searchTerm: "git",
+			name:         "search partial",
+			hosts:        []string{"github.com ssh-rsa key", "gitlab.com ssh-rsa key"},
+			searchTerm:   "git",
 			wantContains: []string{"github.com", "gitlab.com"},
 		},
 	}
@@ -177,9 +177,8 @@ func TestDeleteHost(t *testing.T) {
 			t.Fatalf("Failed to create .ssh directory: %v", err)
 		}
 
-		oldHome := os.Getenv("HOME")
-		os.Setenv("HOME", tmpDir)
-		defer os.Setenv("HOME", oldHome)
+		restoreHome := setHomeDir(t, tmpDir)
+		defer restoreHome()
 
 		// Create initial known_hosts file
 		initialHosts := []string{
@@ -244,9 +243,8 @@ func TestDeleteHost(t *testing.T) {
 			t.Fatalf("Failed to create .ssh directory: %v", err)
 		}
 
-		oldHome := os.Getenv("HOME")
-		os.Setenv("HOME", tmpDir)
-		defer os.Setenv("HOME", oldHome)
+		restoreHome := setHomeDir(t, tmpDir)
+		defer restoreHome()
 
 		// Create initial known_hosts file
 		initialHosts := []string{"github.com ssh-rsa key1"}

@@ -10,7 +10,6 @@ Thank you for your interest in contributing to `known_hosts`!
 
 - Go 1.16 or higher
 - Git
-- `golangci-lint` for linting
 
 ### Clone and Build
 
@@ -52,7 +51,10 @@ known_hosts/
 ### Code Style
 
 **Must pass**:
-- `golangci-lint run` (enforced by CI)
+- `go fmt ./...`
+- `go lint ./...`
+- `go vet ./...`
+- `go fix ./...`
 - `go test -v ./...` (enforced by CI)
 
 **Conventions**:
@@ -220,15 +222,21 @@ fix: Handle Windows line endings correctly
 3. Make your changes
 4. Run tests and linter:
    ```bash
+   go fmt ./...
+   go lint ./...
+   go vet ./...
+   go fix ./...
    go test -v ./...
-   golangci-lint run
    ```
 5. Commit your changes (conventional commits)
 6. Push to the branch (`git push origin feature/amazing-feature`)
 7. Open a Pull Request
 
 **CI Checks**:
-- All PRs must pass `golangci-lint`
+- All PRs must pass `go fmt ./...`
+- All PRs must pass `go lint ./...`
+- All PRs must pass `go vet ./...`
+- All PRs must pass `go fix ./...`
 - All PRs must pass tests
 
 ---

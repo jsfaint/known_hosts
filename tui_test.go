@@ -117,10 +117,10 @@ func TestModelView(t *testing.T) {
 		{
 			name: "list view with search",
 			model: Model{
-				hosts:      []string{"github.com ssh-rsa key", "gitlab.com ssh-rsa key"},
-				filtered:   []string{"github.com ssh-rsa key"},
-				mode:       viewList,
-				search:     "git",
+				hosts:       []string{"github.com ssh-rsa key", "gitlab.com ssh-rsa key"},
+				filtered:    []string{"github.com ssh-rsa key"},
+				mode:        viewList,
+				search:      "git",
 				isSearching: false,
 			},
 			wantContains: []string{"Known Hosts Manager", "Filter: git", "github.com"},
@@ -128,10 +128,10 @@ func TestModelView(t *testing.T) {
 		{
 			name: "list view in search mode",
 			model: Model{
-				hosts:      []string{"github.com ssh-rsa key"},
-				filtered:   []string{"github.com ssh-rsa key"},
-				mode:       viewList,
-				search:     "git",
+				hosts:       []string{"github.com ssh-rsa key"},
+				filtered:    []string{"github.com ssh-rsa key"},
+				mode:        viewList,
+				search:      "git",
 				isSearching: true,
 			},
 			wantContains: []string{"Known Hosts Manager", "Search: git", "_"},
@@ -258,11 +258,11 @@ func TestHandleListKeyMsg(t *testing.T) {
 		{
 			name: "type in search mode",
 			model: Model{
-				hosts:      []string{"github.com ssh-rsa key", "gitlab.com ssh-rsa key"},
-				filtered:   []string{"github.com ssh-rsa key", "gitlab.com ssh-rsa key"},
-				search:     "g",
+				hosts:       []string{"github.com ssh-rsa key", "gitlab.com ssh-rsa key"},
+				filtered:    []string{"github.com ssh-rsa key", "gitlab.com ssh-rsa key"},
+				search:      "g",
 				isSearching: true,
-				mode:       viewList,
+				mode:        viewList,
 			},
 			msg:        tea.KeyMsg{Type: tea.KeyRunes, Runes: []rune{'i'}},
 			wantCursor: 0,
@@ -272,11 +272,11 @@ func TestHandleListKeyMsg(t *testing.T) {
 		{
 			name: "backspace in search mode",
 			model: Model{
-				hosts:      []string{"github.com ssh-rsa key", "gitlab.com ssh-rsa key"},
-				filtered:   []string{"github.com ssh-rsa key", "gitlab.com ssh-rsa key"},
-				search:     "gi",
+				hosts:       []string{"github.com ssh-rsa key", "gitlab.com ssh-rsa key"},
+				filtered:    []string{"github.com ssh-rsa key", "gitlab.com ssh-rsa key"},
+				search:      "gi",
 				isSearching: true,
-				mode:       viewList,
+				mode:        viewList,
 			},
 			msg:        tea.KeyMsg{Type: tea.KeyRunes, Runes: []rune{127}}, // Backspace
 			wantCursor: 0,
@@ -286,11 +286,11 @@ func TestHandleListKeyMsg(t *testing.T) {
 		{
 			name: "exit search with q",
 			model: Model{
-				hosts:      []string{"github.com ssh-rsa key", "gitlab.com ssh-rsa key"},
-				filtered:   []string{"github.com ssh-rsa key", "gitlab.com ssh-rsa key"},
-				search:     "gi",
+				hosts:       []string{"github.com ssh-rsa key", "gitlab.com ssh-rsa key"},
+				filtered:    []string{"github.com ssh-rsa key", "gitlab.com ssh-rsa key"},
+				search:      "gi",
 				isSearching: true,
-				mode:       viewList,
+				mode:        viewList,
 			},
 			msg:        tea.KeyMsg{Type: tea.KeyRunes, Runes: []rune{'q'}},
 			wantCursor: 0,
@@ -353,17 +353,17 @@ func TestHandleConfirmKeyMsg(t *testing.T) {
 			wantFiltered: 0, // All filtered hosts deleted (exact match with full line)
 		},
 		{
-					name: "confirm deletion with Y",
-					model: Model{
-						hosts:    []string{"github.com ssh-rsa key"},
-						filtered: []string{"github.com ssh-rsa key"},
-						cursor:   0,
-						mode:     viewConfirmDelete,
-					},
-					msg:         tea.KeyMsg{Type: tea.KeyRunes, Runes: []rune{'Y'}},
-					wantMode:    viewList,
-					wantFiltered: 0, // Delete function matches exact full line
-				},
+			name: "confirm deletion with Y",
+			model: Model{
+				hosts:    []string{"github.com ssh-rsa key"},
+				filtered: []string{"github.com ssh-rsa key"},
+				cursor:   0,
+				mode:     viewConfirmDelete,
+			},
+			msg:          tea.KeyMsg{Type: tea.KeyRunes, Runes: []rune{'Y'}},
+			wantMode:     viewList,
+			wantFiltered: 0, // Delete function matches exact full line
+		},
 		{
 			name: "cancel deletion with n",
 			model: Model{

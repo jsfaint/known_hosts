@@ -46,9 +46,9 @@ func stringToLine(input string) (lines []string) {
 	// Normalize line endings: handle \r\n (Windows), \n (Unix), \r (old Mac)
 	input = strings.ReplaceAll(input, "\r\n", "\n")
 	input = strings.ReplaceAll(input, "\r", "\n")
-	tmp := strings.Split(input, "\n")
+	tmp := strings.SplitSeq(input, "\n")
 
-	for _, v := range tmp {
+	for v := range tmp {
 		v = strings.TrimSpace(v)
 		if v != "" { // Skip empty lines
 			lines = append(lines, v)
@@ -96,8 +96,9 @@ func SaveFile(input []string) error {
 // This function performs fuzzy matching on the host identifier only.
 //
 // Parameter Format:
-//   Input: Hostname or IP address (partial match supported)
-//   Example: "github", "192.168", "git"
+//
+//	Input: Hostname or IP address (partial match supported)
+//	Example: "github", "192.168", "git"
 //
 // Matching Behavior:
 //   - Searches only in the host part (first space-delimited field)
@@ -107,13 +108,13 @@ func SaveFile(input []string) error {
 //
 // Examples:
 //
-//   // Find all hosts containing "git"
-//   results := Search(hosts, "git")
-//   // Returns: ["github.com ssh-rsa...", "gitlab.com ssh-rsa..."]
+//	// Find all hosts containing "git"
+//	results := Search(hosts, "git")
+//	// Returns: ["github.com ssh-rsa...", "gitlab.com ssh-rsa..."]
 //
-//   // Find hosts by IP prefix
-//   results := Search(hosts, "192.168")
-//   // Returns: ["192.168.1.1 ssh-rsa...", "192.168.1.2 ssh-rsa..."]
+//	// Find hosts by IP prefix
+//	results := Search(hosts, "192.168")
+//	// Returns: ["192.168.1.1 ssh-rsa...", "192.168.1.2 ssh-rsa..."]
 //
 // Design Note:
 // Unlike Delete(), Search() only supports fuzzy matching because:
@@ -144,16 +145,18 @@ func Search(input []string, pattern string) []string {
 // This function supports two parameter formats with SECURITY-FIRST matching:
 //
 // Mode 1: Exact Full Line Match (Priority 1)
-//   Input: Full host line including public key
-//   Example: "github.com ssh-rsa AAAAB3NzaC1yc2E..."
-//   Use case: TUI deletion, when you have the complete host entry
-//   Behavior: String equality check on the full line
+//
+//	Input: Full host line including public key
+//	Example: "github.com ssh-rsa AAAAB3NzaC1yc2E..."
+//	Use case: TUI deletion, when you have the complete host entry
+//	Behavior: String equality check on the full line
 //
 // Mode 2: Exact Host Part Match (Priority 2, fallback)
-//   Input: Hostname or IP address only (NO fuzzy matching)
-//   Example: "github.com" or "192.168.1.1" or "myserver,192.168.1.1"
-//   Use case: CLI deletion, when you only know the host identifier
-//   Behavior: Exact match on the host part (before first space)
+//
+//	Input: Hostname or IP address only (NO fuzzy matching)
+//	Example: "github.com" or "192.168.1.1" or "myserver,192.168.1.1"
+//	Use case: CLI deletion, when you only know the host identifier
+//	Behavior: Exact match on the host part (before first space)
 //
 // SECURITY IMPORTANT:
 // - CLI mode uses EXACT match only to prevent accidental bulk deletion
@@ -167,15 +170,15 @@ func Search(input []string, pattern string) []string {
 //
 // Examples:
 //
-//   // TUI usage (exact match)
-//   hosts := Delete(hosts, "github.com ssh-rsa AAAAB3NzaC1yc2E...")
+//	// TUI usage (exact match)
+//	hosts := Delete(hosts, "github.com ssh-rsa AAAAB3NzaC1yc2E...")
 //
-//   // CLI usage (exact host match)
-//   hosts := Delete(hosts, "github.com")
-//   // This will NOT delete "gitlab.com" or "github.com.cn"
+//	// CLI usage (exact host match)
+//	hosts := Delete(hosts, "github.com")
+//	// This will NOT delete "gitlab.com" or "github.com.cn"
 //
-//   // CLI usage with hostname,IP format
-//   hosts := Delete(hosts, "myserver,192.168.1.1")
+//	// CLI usage with hostname,IP format
+//	hosts := Delete(hosts, "myserver,192.168.1.1")
 func Delete(input []string, pattern string) []string {
 	var out []string
 
