@@ -3,6 +3,7 @@ package main
 import (
 	"bytes"
 	"os"
+	"path/filepath"
 	"strings"
 	"testing"
 )
@@ -264,6 +265,68 @@ func TestDeleteHost(t *testing.T) {
 	})
 }
 
+func TestPreviewDelete(t *testing.T) {
+	tests := []struct {
+		name         string
+		hosts        []string
+		host         string
+		wantContains []string
+	}{
+		{
+			name: "match by host part",
+			hosts: []string{
+				"github.com ssh-rsa key1",
+				"github.com ssh-ed25519 key2",
+				"gitlab.com ssh-rsa key3",
+			},
+			host: "github.com",
+			wantContains: []string{
+				"Dry run: would remove 2 entries:",
+				"- github.com",
+			},
+		},
+		{
+			name: "no matching host",
+			hosts: []string{
+				"github.com ssh-rsa key1",
+			},
+			host:         "bitbucket.org",
+			wantContains: []string{"Dry run: no matching hosts would be removed for: bitbucket.org"},
+		},
+		{
+			name: "full line falls back to host display",
+			hosts: []string{
+				"myserver,192.168.1.1 ssh-rsa key1",
+			},
+			host:         "myserver,192.168.1.1 ssh-rsa key1",
+			wantContains: []string{"Dry run: would remove 1 entry:", "- myserver, 192.168.1.1"},
+		},
+	}
+
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			old := os.Stdout
+			r, w, _ := os.Pipe()
+			os.Stdout = w
+
+			previewDelete(tt.hosts, tt.host)
+
+			w.Close()
+			os.Stdout = old
+
+			var buf bytes.Buffer
+			_, _ = buf.ReadFrom(r)
+			output := buf.String()
+
+			for _, expected := range tt.wantContains {
+				if !strings.Contains(output, expected) {
+					t.Errorf("previewDelete() output should contain %q, got:\n%s", expected, output)
+				}
+			}
+		})
+	}
+}
+
 func TestPrintUsage(t *testing.T) {
 	// Capture stdout
 	old := os.Stdout
@@ -328,6 +391,16 @@ func TestParseArgs(t *testing.T) {
 			wantOpts: opts{operation: cmdRemove, host: "github.com"},
 		},
 		{
+			name:     "remove command with trailing dry-run",
+			args:     []string{"cmd", "rm", "github.com", "--dry-run"},
+			wantOpts: opts{operation: cmdRemove, host: "github.com", dryRun: true},
+		},
+		{
+			name:     "remove command with leading dry-run",
+			args:     []string{"cmd", "rm", "--dry-run", "github.com"},
+			wantOpts: opts{operation: cmdRemove, host: "github.com", dryRun: true},
+		},
+		{
 			name:     "list command",
 			args:     []string{"cmd", "ls"},
 			wantOpts: opts{operation: cmdList},
@@ -358,6 +431,78 @@ func TestParseArgs(t *testing.T) {
 			if got.host != tt.wantOpts.host {
 				t.Errorf("parseArgs() host = %v, want %v", got.host, tt.wantOpts.host)
 			}
+			if got.dryRun != tt.wantOpts.dryRun {
+				t.Errorf("parseArgs() dryRun = %v, want %v", got.dryRun, tt.wantOpts.dryRun)
+			}
+		})
+	}
+}
+
+func TestParseRemoveArgs(t *testing.T) {
+	tests := []struct {
+		name        string
+		args        []string
+		wantHost    string
+		wantDryRun  bool
+		wantErr     bool
+		wantErrText string
+	}{
+		{
+			name:       "host only",
+			args:       []string{"github.com"},
+			wantHost:   "github.com",
+			wantDryRun: false,
+		},
+		{
+			name:       "host and dry-run",
+			args:       []string{"github.com", "--dry-run"},
+			wantHost:   "github.com",
+			wantDryRun: true,
+		},
+		{
+			name:       "dry-run then host",
+			args:       []string{"--dry-run", "github.com"},
+			wantHost:   "github.com",
+			wantDryRun: true,
+		},
+		{
+			name:        "duplicate dry-run",
+			args:        []string{"--dry-run", "github.com", "--dry-run"},
+			wantErr:     true,
+			wantErrText: "rm requires a host",
+		},
+		{
+			name:        "two hosts",
+			args:        []string{"github.com", "gitlab.com"},
+			wantErr:     true,
+			wantErrText: "rm accepts exactly one host",
+		},
+		{
+			name:        "missing host",
+			args:        []string{"--dry-run"},
+			wantErr:     true,
+			wantErrText: "host cannot be empty",
+		},
+	}
+
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			gotHost, gotDryRun, err := parseRemoveArgs(tt.args)
+			if (err != nil) != tt.wantErr {
+				t.Fatalf("parseRemoveArgs() error = %v, wantErr %v", err, tt.wantErr)
+			}
+			if tt.wantErr {
+				if !strings.Contains(err.Error(), tt.wantErrText) {
+					t.Fatalf("parseRemoveArgs() error = %v, want substring %q", err, tt.wantErrText)
+				}
+				return
+			}
+			if gotHost != tt.wantHost {
+				t.Errorf("parseRemoveArgs() host = %q, want %q", gotHost, tt.wantHost)
+			}
+			if gotDryRun != tt.wantDryRun {
+				t.Errorf("parseRemoveArgs() dryRun = %v, want %v", gotDryRun, tt.wantDryRun)
+			}
 		})
 	}
 }
@@ -377,4 +522,42 @@ func TestValidateHostErrors(t *testing.T) {
 	if !strings.Contains(err.Error(), expectedErrMsg) {
 		t.Errorf("validateHost() error message should contain %q, got: %v", expectedErrMsg, err)
 	}
+}
+
+func TestEnsureKnownHostsExists(t *testing.T) {
+	t.Run("existing known_hosts returns nil", func(t *testing.T) {
+		tmpDir := t.TempDir()
+		sshDir := filepath.Join(tmpDir, ".ssh")
+		testFile := filepath.Join(sshDir, "known_hosts")
+		if err := os.MkdirAll(sshDir, 0755); err != nil {
+			t.Fatalf("Failed to create .ssh directory: %v", err)
+		}
+		if err := os.WriteFile(testFile, []byte("github.com ssh-rsa key1\n"), 0644); err != nil {
+			t.Fatalf("Failed to create known_hosts file: %v", err)
+		}
+
+		restoreHome := setHomeDir(t, tmpDir)
+		defer restoreHome()
+
+		if err := ensureKnownHostsExists(); err != nil {
+			t.Fatalf("ensureKnownHostsExists() error = %v, want nil", err)
+		}
+	})
+
+	t.Run("missing known_hosts returns helpful error", func(t *testing.T) {
+		tmpDir := t.TempDir()
+		restoreHome := setHomeDir(t, tmpDir)
+		defer restoreHome()
+
+		err := ensureKnownHostsExists()
+		if err == nil {
+			t.Fatal("ensureKnownHostsExists() error = nil, want helpful error")
+		}
+		if !strings.Contains(err.Error(), "known_hosts file not found") {
+			t.Fatalf("ensureKnownHostsExists() error = %v, want missing file guidance", err)
+		}
+		if !strings.Contains(err.Error(), "create it manually") {
+			t.Fatalf("ensureKnownHostsExists() error = %v, want actionable guidance", err)
+		}
+	})
 }

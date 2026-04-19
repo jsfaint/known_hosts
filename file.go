@@ -140,6 +140,37 @@ func Search(input []string, pattern string) []string {
 	return out
 }
 
+func deleteMatches(input []string, pattern string) (remaining []string, removed []string) {
+	for _, v := range input {
+		// Skip empty lines
+		if v == "" {
+			continue
+		}
+
+		// Priority 1: Exact match with full line (TUI usage)
+		if v == pattern {
+			removed = append(removed, v)
+			continue
+		}
+
+		// Priority 2: Exact match on host part (CLI usage) - SECURITY: NO fuzzy matching
+		parts := strings.Fields(v)
+		if len(parts) > 0 {
+			hostPart := parts[0]
+			// SECURITY: Use exact match instead of strings.Contains
+			// This prevents "git" from matching "github.com" or "gitlab.com"
+			if hostPart == pattern {
+				removed = append(removed, v)
+				continue
+			}
+		}
+
+		remaining = append(remaining, v)
+	}
+
+	return remaining, removed
+}
+
 // Delete removes hosts from the list based on the pattern.
 //
 // This function supports two parameter formats with SECURITY-FIRST matching:
@@ -180,32 +211,6 @@ func Search(input []string, pattern string) []string {
 //	// CLI usage with hostname,IP format
 //	hosts := Delete(hosts, "myserver,192.168.1.1")
 func Delete(input []string, pattern string) []string {
-	var out []string
-
-	for _, v := range input {
-		// Skip empty lines
-		if v == "" {
-			continue
-		}
-
-		// Priority 1: Exact match with full line (TUI usage)
-		if v == pattern {
-			continue // Skip (delete) this exact entry
-		}
-
-		// Priority 2: Exact match on host part (CLI usage) - SECURITY: NO fuzzy matching
-		parts := strings.Fields(v)
-		if len(parts) > 0 {
-			hostPart := parts[0]
-			// SECURITY: Use exact match instead of strings.Contains
-			// This prevents "git" from matching "github.com" or "gitlab.com"
-			if hostPart == pattern {
-				continue // Skip (delete) this entry
-			}
-		}
-
-		out = append(out, v)
-	}
-
-	return out
+	remaining, _ := deleteMatches(input, pattern)
+	return remaining
 }

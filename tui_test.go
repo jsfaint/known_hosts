@@ -103,7 +103,7 @@ func TestModelView(t *testing.T) {
 				filtered: []string{"github.com ssh-rsa key"},
 				mode:     viewList,
 			},
-			wantContains: []string{"Known Hosts Manager", "github.com", "Controls:"},
+			wantContains: []string{"Known Hosts Manager", "Showing 1 of 1 hosts", "github.com", "Controls:"},
 		},
 		{
 			name: "list view with empty hosts",
@@ -112,7 +112,7 @@ func TestModelView(t *testing.T) {
 				filtered: []string{},
 				mode:     viewList,
 			},
-			wantContains: []string{"Known Hosts Manager", "No hosts found"},
+			wantContains: []string{"Known Hosts Manager", "Showing 0 hosts", "No known hosts available"},
 		},
 		{
 			name: "list view with search",
@@ -123,7 +123,7 @@ func TestModelView(t *testing.T) {
 				search:      "git",
 				isSearching: false,
 			},
-			wantContains: []string{"Known Hosts Manager", "Filter: git", "github.com"},
+			wantContains: []string{"Known Hosts Manager", "Showing 1 of 2 hosts", "Filter: git", "github.com"},
 		},
 		{
 			name: "list view in search mode",
@@ -135,6 +135,27 @@ func TestModelView(t *testing.T) {
 				isSearching: true,
 			},
 			wantContains: []string{"Known Hosts Manager", "Search: git", "_"},
+		},
+		{
+			name: "list view with empty filter results",
+			model: Model{
+				hosts:       []string{"github.com ssh-rsa key"},
+				filtered:    []string{},
+				mode:        viewList,
+				search:      "gitlab",
+				isSearching: false,
+			},
+			wantContains: []string{"No hosts found for filter: gitlab"},
+		},
+		{
+			name: "list view with status message",
+			model: Model{
+				hosts:    []string{"github.com ssh-rsa key"},
+				filtered: []string{"github.com ssh-rsa key"},
+				mode:     viewList,
+				status:   "Deleted github.com",
+			},
+			wantContains: []string{"Deleted github.com"},
 		},
 		{
 			name: "confirm delete view",
@@ -339,6 +360,7 @@ func TestHandleConfirmKeyMsg(t *testing.T) {
 		msg          tea.KeyMsg
 		wantMode     viewMode
 		wantFiltered int
+		wantStatus   string
 	}{
 		{
 			name: "confirm deletion with y",
@@ -351,6 +373,7 @@ func TestHandleConfirmKeyMsg(t *testing.T) {
 			msg:          tea.KeyMsg{Type: tea.KeyRunes, Runes: []rune{'y'}},
 			wantMode:     viewList,
 			wantFiltered: 0, // All filtered hosts deleted (exact match with full line)
+			wantStatus:   "Deleted github.com",
 		},
 		{
 			name: "confirm deletion with Y",
@@ -363,6 +386,7 @@ func TestHandleConfirmKeyMsg(t *testing.T) {
 			msg:          tea.KeyMsg{Type: tea.KeyRunes, Runes: []rune{'Y'}},
 			wantMode:     viewList,
 			wantFiltered: 0, // Delete function matches exact full line
+			wantStatus:   "Deleted github.com",
 		},
 		{
 			name: "cancel deletion with n",
@@ -374,6 +398,7 @@ func TestHandleConfirmKeyMsg(t *testing.T) {
 			msg:          tea.KeyMsg{Type: tea.KeyRunes, Runes: []rune{'n'}},
 			wantMode:     viewList,
 			wantFiltered: 1,
+			wantStatus:   "Deletion cancelled",
 		},
 		{
 			name: "cancel deletion with N",
@@ -385,6 +410,7 @@ func TestHandleConfirmKeyMsg(t *testing.T) {
 			msg:          tea.KeyMsg{Type: tea.KeyRunes, Runes: []rune{'N'}},
 			wantMode:     viewList,
 			wantFiltered: 1,
+			wantStatus:   "Deletion cancelled",
 		},
 		{
 			name: "cancel deletion with q",
@@ -396,6 +422,7 @@ func TestHandleConfirmKeyMsg(t *testing.T) {
 			msg:          tea.KeyMsg{Type: tea.KeyRunes, Runes: []rune{'q'}},
 			wantMode:     viewList,
 			wantFiltered: 1,
+			wantStatus:   "Deletion cancelled",
 		},
 		{
 			name: "cancel deletion with Esc",
@@ -407,6 +434,7 @@ func TestHandleConfirmKeyMsg(t *testing.T) {
 			msg:          tea.KeyMsg{Type: tea.KeyEsc},
 			wantMode:     viewList,
 			wantFiltered: 1,
+			wantStatus:   "Deletion cancelled",
 		},
 	}
 
@@ -424,6 +452,10 @@ func TestHandleConfirmKeyMsg(t *testing.T) {
 
 			if len(model.filtered) != tt.wantFiltered {
 				t.Errorf("handleConfirmKeyMsg() filtered length = %v, want %v", len(model.filtered), tt.wantFiltered)
+			}
+
+			if model.status != tt.wantStatus {
+				t.Errorf("handleConfirmKeyMsg() status = %q, want %q", model.status, tt.wantStatus)
 			}
 		})
 	}

@@ -16,6 +16,7 @@ import (
 type opts struct {
 	operation string
 	host      string
+	dryRun    bool
 }
 
 const (
@@ -48,6 +49,33 @@ func checkArgs(num int) {
 	}
 }
 
+func parseRemoveArgs(args []string) (host string, dryRun bool, err error) {
+	if len(args) < 1 || len(args) > 2 {
+		return "", false, fmt.Errorf("rm requires a host and supports optional --dry-run")
+	}
+
+	for _, arg := range args {
+		switch arg {
+		case "--dry-run":
+			if dryRun {
+				return "", false, fmt.Errorf("duplicate --dry-run flag")
+			}
+			dryRun = true
+		default:
+			if host != "" {
+				return "", false, fmt.Errorf("rm accepts exactly one host")
+			}
+			host = arg
+		}
+	}
+
+	if err := validateHost(host); err != nil {
+		return "", false, err
+	}
+
+	return host, dryRun, nil
+}
+
 func parseArgs() (opt opts) {
 	if len(os.Args) < 2 {
 		printUsage()
@@ -56,13 +84,14 @@ func parseArgs() (opt opts) {
 
 	switch os.Args[1] {
 	case cmdRemove:
-		checkArgs(3)
-		if err := validateHost(os.Args[2]); err != nil {
+		host, dryRun, err := parseRemoveArgs(os.Args[2:])
+		if err != nil {
 			fmt.Fprintf(os.Stderr, "Error: %v\n", err)
 			os.Exit(1)
 		}
 		opt.operation = cmdRemove
-		opt.host = os.Args[2]
+		opt.host = host
+		opt.dryRun = dryRun
 	case cmdList:
 		checkArgs(2)
 		opt.operation = cmdList
@@ -89,10 +118,50 @@ func parseArgs() (opt opts) {
 	return opt
 }
 
+func displayHostIdentifier(line string) string {
+	host, err := NewHost(line)
+	if err == nil {
+		if host.Name != "" && host.IP != "" {
+			return host.Name + ", " + host.IP
+		}
+		if host.Name != "" {
+			return host.Name
+		}
+		if host.IP != "" {
+			return host.IP
+		}
+	}
+
+	parts := strings.Fields(line)
+	if len(parts) > 0 {
+		return parts[0]
+	}
+
+	return line
+}
+
+func previewDelete(hosts []string, host string) {
+	_, removed := deleteMatches(hosts, host)
+	if len(removed) == 0 {
+		fmt.Println("Dry run: no matching hosts would be removed for:", host)
+		return
+	}
+
+	fmt.Printf("Dry run: would remove %d entr", len(removed))
+	if len(removed) == 1 {
+		fmt.Println("y:")
+	} else {
+		fmt.Println("ies:")
+	}
+	for _, line := range removed {
+		fmt.Printf("- %s\n", displayHostIdentifier(line))
+	}
+}
+
 func deleteHost(hosts []string, host string) {
-	fmt.Println("Removing host: ", host)
-	hosts = Delete(hosts, host)
-	if err := SaveFile(hosts); err != nil {
+	fmt.Println("Removing host:", host)
+	remaining, _ := deleteMatches(hosts, host)
+	if err := SaveFile(remaining); err != nil {
 		fmt.Fprintf(os.Stderr, "Error: failed to delete host: %v\n", err)
 		os.Exit(1)
 	}
@@ -132,7 +201,7 @@ func printUsage() {
 usage: known_hosts command [host]
   commands:
     ls      - List all known hosts
-    rm      - Remove a host
+    rm      - Remove a host (supports --dry-run)
     search  - Search host in known hosts
     tui     - Interactive terminal UI
     help    - Show this message
@@ -156,12 +225,20 @@ func runTUI(hosts []string) {
 	}
 }
 
-func main() {
-	if !Exists() {
-		return
+func ensureKnownHostsExists() error {
+	if Exists() {
+		return nil
 	}
 
+	return fmt.Errorf("known_hosts file not found in ~/.ssh/known_hosts; connect to a host first or create it manually")
+}
+
+func main() {
 	opt := parseArgs()
+	if err := ensureKnownHostsExists(); err != nil {
+		fmt.Fprintf(os.Stderr, "Error: %v\n", err)
+		os.Exit(1)
+	}
 
 	hosts, err := ReadFile()
 	if err != nil {
@@ -171,6 +248,10 @@ func main() {
 
 	switch opt.operation {
 	case cmdRemove:
+		if opt.dryRun {
+			previewDelete(hosts, opt.host)
+			return
+		}
 		deleteHost(hosts, opt.host)
 	case cmdList:
 		listHost(hosts)

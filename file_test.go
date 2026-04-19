@@ -286,6 +286,70 @@ func TestDelete(t *testing.T) {
 	}
 }
 
+func TestDeleteMatches(t *testing.T) {
+	tests := []struct {
+		name          string
+		input         []string
+		pattern       string
+		wantRemaining []string
+		wantRemoved   []string
+	}{
+		{
+			name: "remove exact host part",
+			input: []string{
+				"github.com ssh-rsa key1",
+				"github.com ssh-ed25519 key2",
+				"gitlab.com ssh-rsa key3",
+			},
+			pattern: "github.com",
+			wantRemaining: []string{
+				"gitlab.com ssh-rsa key3",
+			},
+			wantRemoved: []string{
+				"github.com ssh-rsa key1",
+				"github.com ssh-ed25519 key2",
+			},
+		},
+		{
+			name: "remove exact full line",
+			input: []string{
+				"github.com ssh-rsa key1",
+				"github.com ssh-ed25519 key2",
+			},
+			pattern: "github.com ssh-rsa key1",
+			wantRemaining: []string{
+				"github.com ssh-ed25519 key2",
+			},
+			wantRemoved: []string{
+				"github.com ssh-rsa key1",
+			},
+		},
+		{
+			name: "no match",
+			input: []string{
+				"github.com ssh-rsa key1",
+			},
+			pattern: "bitbucket.org",
+			wantRemaining: []string{
+				"github.com ssh-rsa key1",
+			},
+			wantRemoved: []string(nil),
+		},
+	}
+
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			gotRemaining, gotRemoved := deleteMatches(tt.input, tt.pattern)
+			if !reflect.DeepEqual(gotRemaining, tt.wantRemaining) {
+				t.Errorf("deleteMatches() remaining = %v, want %v", gotRemaining, tt.wantRemaining)
+			}
+			if !reflect.DeepEqual(gotRemoved, tt.wantRemoved) {
+				t.Errorf("deleteMatches() removed = %v, want %v", gotRemoved, tt.wantRemoved)
+			}
+		})
+	}
+}
+
 // Helper function to check if a string contains a substring
 func containsSubstring(s, substr string) bool {
 	return len(s) >= len(substr) && (s == substr || len(s) > len(substr) && findSubstring(s, substr))

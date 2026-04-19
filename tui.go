@@ -1,6 +1,7 @@
 package main
 
 import (
+	"fmt"
 	"strings"
 	"time"
 
@@ -17,6 +18,7 @@ type Model struct {
 	isSearching bool     // Whether in search mode
 	mode        viewMode // Current view mode
 	err         error    // Error state
+	status      string   // Last user-visible status message
 }
 
 type viewMode int
@@ -93,6 +95,9 @@ var (
 	searchStyle = lipgloss.NewStyle().
 			Foreground(lipgloss.Color("#7D56F4"))
 
+	statusStyle = lipgloss.NewStyle().
+			Foreground(lipgloss.Color("#04B575"))
+
 	footerStyle = lipgloss.NewStyle().
 			Foreground(lipgloss.Color("#626262"))
 )
@@ -109,6 +114,13 @@ func (m Model) renderList() string {
 	// Title
 	s.WriteString(titleStyle.Render("Known Hosts Manager") + "\n\n")
 
+	// Summary
+	s.WriteString(footerStyle.Render(m.renderSummary()) + "\n")
+	if m.status != "" {
+		s.WriteString(statusStyle.Render(m.status) + "\n")
+	}
+	s.WriteString("\n")
+
 	// Search bar
 	if m.isSearching {
 		s.WriteString(searchStyle.Render("Search: ") + m.search + "_\n\n")
@@ -118,7 +130,14 @@ func (m Model) renderList() string {
 
 	// Host list
 	if len(m.filtered) == 0 {
-		s.WriteString(normalStyle.Render("No hosts found"))
+		switch {
+		case len(m.hosts) == 0:
+			s.WriteString(normalStyle.Render("No known hosts available"))
+		case m.search != "":
+			s.WriteString(normalStyle.Render("No hosts found for filter: " + m.search))
+		default:
+			s.WriteString(normalStyle.Render("No hosts found"))
+		}
 	} else {
 		for i, hostLine := range m.filtered {
 			cursor := " "
@@ -151,9 +170,22 @@ func (m Model) renderList() string {
 	}
 
 	// Footer
-	s.WriteString("\n" + footerStyle.Render("Controls: ↑↓ navigate | d delete | / search | q quit"))
+	s.WriteString("\n" + footerStyle.Render("Controls: ↑↓/Home/End navigate | d delete | / search | q quit"))
 
 	return s.String()
+}
+
+func (m Model) renderSummary() string {
+	if len(m.hosts) == 0 {
+		return "Showing 0 hosts"
+	}
+
+	summary := fmt.Sprintf("Showing %d of %d hosts", len(m.filtered), len(m.hosts))
+	if len(m.filtered) > 0 {
+		summary += fmt.Sprintf(" | Selected %d/%d", m.cursor+1, len(m.filtered))
+	}
+
+	return summary
 }
 
 // renderConfirmDelete displays delete confirmation
@@ -260,33 +292,35 @@ func (m Model) handleListKeyMsg(msg tea.KeyMsg) (tea.Model, tea.Cmd) {
 func (m Model) handleConfirmKeyMsg(msg tea.KeyMsg) (tea.Model, tea.Cmd) {
 	switch msg.Type {
 	case tea.KeyEnter:
-		hostLine := m.filtered[m.cursor]
-		m.hosts = Delete(m.hosts, hostLine)
-		m.filtered = Delete(m.filtered, hostLine)
-		if m.cursor >= len(m.filtered) {
-			m.cursor = len(m.filtered) - 1
-		}
-		m.mode = viewList
-		return m, saveHosts(m.hosts)
+		return m.deleteCurrentSelection()
 	case tea.KeyRunes:
 		switch msg.String() {
 		case "y", "Y":
-			hostLine := m.filtered[m.cursor]
-			m.hosts = Delete(m.hosts, hostLine)
-			m.filtered = Delete(m.filtered, hostLine)
-			if m.cursor >= len(m.filtered) {
-				m.cursor = len(m.filtered) - 1
-			}
-			m.mode = viewList
-			return m, saveHosts(m.hosts)
+			return m.deleteCurrentSelection()
 		case "n", "N", "q":
 			m.mode = viewList
+			m.status = "Deletion cancelled"
 		}
 	case tea.KeyCtrlC, tea.KeyEsc:
 		m.mode = viewList
+		m.status = "Deletion cancelled"
 	}
 
 	return m, nil
+}
+
+func (m Model) deleteCurrentSelection() (tea.Model, tea.Cmd) {
+	hostLine := m.filtered[m.cursor]
+	m.hosts = Delete(m.hosts, hostLine)
+	m.filtered = Delete(m.filtered, hostLine)
+	if len(m.filtered) == 0 {
+		m.cursor = 0
+	} else if m.cursor >= len(m.filtered) {
+		m.cursor = len(m.filtered) - 1
+	}
+	m.mode = viewList
+	m.status = "Deleted " + displayHostIdentifier(hostLine)
+	return m, saveHosts(m.hosts)
 }
 
 // filterHosts filters the host list based on search query
