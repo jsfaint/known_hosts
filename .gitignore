@@ -2,4 +2,8 @@
 known_hosts*
 
 # Trellis workflow directory (local development configuration)
+.agents/
 .trellis/
+.opencode/
+.codex/
+.claude/
