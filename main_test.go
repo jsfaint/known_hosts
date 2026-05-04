@@ -93,7 +93,7 @@ func TestListHost(t *testing.T) {
 
 			listHost(tt.hosts)
 
-			w.Close()
+			_ = w.Close()
 			os.Stdout = old
 
 			var buf bytes.Buffer
@@ -152,7 +152,7 @@ func TestSearchHost(t *testing.T) {
 
 			searchHost(tt.hosts, tt.searchTerm)
 
-			w.Close()
+			_ = w.Close()
 			os.Stdout = old
 
 			var buf bytes.Buffer
@@ -198,7 +198,7 @@ func TestDeleteHost(t *testing.T) {
 
 		deleteHost(initialHosts, "gitlab.com")
 
-		w.Close()
+		_ = w.Close()
 		os.Stdout = old
 
 		var buf bytes.Buffer
@@ -311,7 +311,7 @@ func TestPreviewDelete(t *testing.T) {
 
 			previewDelete(tt.hosts, tt.host)
 
-			w.Close()
+			_ = w.Close()
 			os.Stdout = old
 
 			var buf bytes.Buffer
@@ -335,7 +335,7 @@ func TestPrintUsage(t *testing.T) {
 
 	printUsage()
 
-	w.Close()
+	_ = w.Close()
 	os.Stdout = old
 
 	var buf bytes.Buffer

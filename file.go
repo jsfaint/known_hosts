@@ -4,13 +4,7 @@ import (
 	"fmt"
 	"os"
 	"path/filepath"
-	"runtime"
 	"strings"
-)
-
-const (
-	dosFormat  string = "\r\n"
-	unixFormat string = "\n"
 )
 
 // GetFilePath returns the filepath of known_hosts
@@ -32,14 +26,6 @@ func Exists() bool {
 
 	_, err = os.Stat(name)
 	return err == nil
-}
-
-func getLinebreak() string {
-	if runtime.GOOS == "windows" {
-		return dosFormat
-	}
-
-	return unixFormat
 }
 
 func stringToLine(input string) (lines []string) {
@@ -86,7 +72,7 @@ func SaveFile(input []string) error {
 		perm = info.Mode().Perm()
 	}
 
-	str := strings.Join(input, getLinebreak()) + getLinebreak()
+	str := strings.Join(input, "\n") + "\n"
 
 	return os.WriteFile(name, []byte(str), perm)
 }

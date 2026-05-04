@@ -5,6 +5,7 @@ import (
 	"path/filepath"
 	"reflect"
 	"runtime"
+	"strings"
 	"testing"
 )
 
@@ -170,7 +171,7 @@ func TestSaveFile(t *testing.T) {
 
 	contentStr := string(content)
 	for _, line := range input {
-		if !containsSubstring(contentStr, line) {
+		if !strings.Contains(contentStr, line) {
 			t.Errorf("SaveFile() should contain line: %s", line)
 		}
 	}
@@ -232,9 +233,9 @@ func TestSearch(t *testing.T) {
 		{"last", args{[]string{"1", "2", "3", "4", "5"}, "5"}, []string{"5"}},
 		{"middle", args{[]string{"1", "2", "3", "4", "5"}, "3"}, []string{"3"}},
 		{"multi", args{[]string{"12", "21", "33", "44", "55"}, "1"}, []string{"12", "21"}},
-		{"empty input", args{[]string{}, "1"}, []string{}},
+		{"empty input", args{nil, "1"}, nil},
 		{"empty pattern", args{[]string{"1", "2", "3"}, ""}, []string{"1", "2", "3"}},
-		{"not found", args{[]string{"1", "2", "3"}, "99"}, []string{}},
+		{"not found", args{[]string{"1", "2", "3"}, "99"}, nil},
 		{"full host line", args{[]string{"github.com ssh-rsa AAAAB3NzaC1yc2EAAAADAQABAAABAQC"}, "github"}, []string{"github.com ssh-rsa AAAAB3NzaC1yc2EAAAADAQABAAABAQC"}},
 		{"host with comma", args{[]string{"myserver,192.168.1.1 ssh-rsa AAAAB3NzaC1yc2EAAAADAQABAAABAQC"}, "myserver"}, []string{"myserver,192.168.1.1 ssh-rsa AAAAB3NzaC1yc2EAAAADAQABAAABAQC"}},
 		{"ip search", args{[]string{"myserver,192.168.1.1 ssh-rsa AAAAB3NzaC1yc2EAAAADAQABAAABAQC"}, "192.168.1.1"}, []string{"myserver,192.168.1.1 ssh-rsa AAAAB3NzaC1yc2EAAAADAQABAAABAQC"}},
@@ -244,7 +245,7 @@ func TestSearch(t *testing.T) {
 	for _, test := range tests {
 		t.Run(test.name, func(t *testing.T) {
 			got := Search(test.args.input, test.args.pattern)
-			if !slicesEqual(test.want, got) {
+			if !reflect.DeepEqual(test.want, got) {
 				t.Errorf("Not equal, want: %v, got: %v", test.want, got)
 			}
 		})
@@ -268,9 +269,9 @@ func TestDelete(t *testing.T) {
 		// SECURITY: 模糊匹配已移除，以下测试更新为精确匹配
 		{"multi-1 exact", args{[]string{"11", "11", "33", "44", "55"}, "11"}, []string{"33", "44", "55"}},
 		{"multi-2 exact", args{[]string{"11", "22", "11", "44", "55"}, "11"}, []string{"22", "44", "55"}},
-		{"empty input", args{[]string{}, "1"}, []string{}},
+		{"empty input", args{nil, "1"}, nil},
 		{"not found", args{[]string{"1", "2", "3"}, "99"}, []string{"1", "2", "3"}},
-		{"delete all", args{[]string{"1", "1", "1"}, "1"}, []string{}},
+		{"delete all", args{[]string{"1", "1", "1"}, "1"}, nil},
 		// SECURITY: 更新为精确匹配，不使用模糊匹配
 		{"exact host match", args{[]string{"github.com ssh-rsa AAAAB3NzaC1yc2EAAAADAQABAAABAQC", "gitlab.com ssh-rsa key"}, "github.com"}, []string{"gitlab.com ssh-rsa key"}},
 		{"empty string skip", args{[]string{"1", "", "2"}, "1"}, []string{"2"}},
@@ -279,7 +280,7 @@ func TestDelete(t *testing.T) {
 	for _, test := range tests {
 		t.Run(test.name, func(t *testing.T) {
 			got := Delete(test.args.input, test.args.pattern)
-			if !slicesEqual(test.want, got) {
+			if !reflect.DeepEqual(test.want, got) {
 				t.Errorf("Not equal, want: %v, got: %v", test.want, got)
 			}
 		})
@@ -348,31 +349,4 @@ func TestDeleteMatches(t *testing.T) {
 			}
 		})
 	}
-}
-
-// Helper function to check if a string contains a substring
-func containsSubstring(s, substr string) bool {
-	return len(s) >= len(substr) && (s == substr || len(s) > len(substr) && findSubstring(s, substr))
-}
-
-func findSubstring(s, substr string) bool {
-	for i := 0; i <= len(s)-len(substr); i++ {
-		if s[i:i+len(substr)] == substr {
-			return true
-		}
-	}
-	return false
-}
-
-// Helper function to compare string slices, handling nil vs empty slice
-func slicesEqual(a, b []string) bool {
-	if len(a) != len(b) {
-		return false
-	}
-	for i := range a {
-		if a[i] != b[i] {
-			return false
-		}
-	}
-	return true
 }

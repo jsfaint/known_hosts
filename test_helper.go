@@ -25,9 +25,9 @@ func setHomeDir(t *testing.T, newDir string) (restore func()) {
 
 	return func() {
 		if oldVal == "" {
-			os.Unsetenv(envVar)
+			_ = os.Unsetenv(envVar)
 		} else {
-			os.Setenv(envVar, oldVal)
+			_ = os.Setenv(envVar, oldVal)
 		}
 	}
 }

@@ -43,7 +43,7 @@ func validateHost(host string) error {
 
 func checkArgs(num int) {
 	if len(os.Args) != num {
-		fmt.Println("Invalid parameter")
+		fmt.Fprintln(os.Stderr, "Invalid parameter")
 		printUsage()
 		os.Exit(1)
 	}
@@ -110,7 +110,7 @@ func parseArgs() (opt opts) {
 		printUsage()
 		os.Exit(0) // help is successful exit
 	default:
-		fmt.Println("Invalid parameter")
+		fmt.Fprintln(os.Stderr, "Invalid parameter")
 		printUsage()
 		os.Exit(1)
 	}
@@ -121,15 +121,7 @@ func parseArgs() (opt opts) {
 func displayHostIdentifier(line string) string {
 	host, err := NewHost(line)
 	if err == nil {
-		if host.Name != "" && host.IP != "" {
-			return host.Name + ", " + host.IP
-		}
-		if host.Name != "" {
-			return host.Name
-		}
-		if host.IP != "" {
-			return host.IP
-		}
+		return host.DisplayName()
 	}
 
 	parts := strings.Fields(line)
@@ -186,13 +178,7 @@ func listHost(hosts []string) {
 			continue
 		}
 
-		if host.Name == "" {
-			fmt.Printf("%s\n", host.IP)
-		} else if host.IP == "" {
-			fmt.Printf("%s\n", host.Name)
-		} else {
-			fmt.Printf("%s, %s\n", host.Name, host.IP)
-		}
+		fmt.Println(host.DisplayName())
 	}
 }
 

@@ -6,7 +6,6 @@ import (
 	"strings"
 )
 
-// Host defines struct for host string in known_hosts file
 type Host struct {
 	Name    string
 	IP      string
@@ -32,10 +31,17 @@ func (h *Host) getNameIP(value string) {
 	}
 }
 
-/*
-NewHost create host struct from string, the input string format as below:
-[name],<ip> <key type> <public key>
-*/
+// DisplayName returns a human-readable host identifier combining name and IP.
+func (h *Host) DisplayName() string {
+	if h.Name != "" && h.IP != "" {
+		return h.Name + ", " + h.IP
+	}
+	if h.Name != "" {
+		return h.Name
+	}
+	return h.IP
+}
+
 func NewHost(input string) (host Host, err error) {
 	keys := strings.Split(input, " ")
 	if len(keys) != 3 {

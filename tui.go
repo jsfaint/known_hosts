@@ -3,7 +3,6 @@ package main
 import (
 	"fmt"
 	"strings"
-	"time"
 
 	tea "github.com/charmbracelet/bubbletea"
 	"github.com/charmbracelet/lipgloss"
@@ -28,15 +27,8 @@ const (
 	viewConfirmDelete
 )
 
-// TickMsg is sent on each timer tick for any needed updates
-type TickMsg time.Time
-
-// Init initializes the TUI model
 func (m Model) Init() tea.Cmd {
-	return tea.Batch(
-		tick(),
-		loadHosts(),
-	)
+	return loadHosts()
 }
 
 // Update handles incoming messages
@@ -51,9 +43,6 @@ func (m Model) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 		m.hosts = msg.hosts
 		m.filtered = msg.hosts
 		return m, nil
-	case TickMsg:
-		// Can be used for periodic updates
-		return m, tick()
 	}
 	return m, nil
 }
@@ -150,16 +139,7 @@ func (m Model) renderList() string {
 				continue
 			}
 
-			var hostDisplay string
-			if host.Name != "" && host.IP != "" {
-				hostDisplay = host.Name + ", " + host.IP
-			} else if host.Name != "" {
-				hostDisplay = host.Name
-			} else {
-				hostDisplay = host.IP
-			}
-
-			line := cursor + " " + hostDisplay
+			line := cursor + " " + host.DisplayName()
 			if i == m.cursor {
 				s.WriteString(selectedStyle.Render(line))
 			} else {
@@ -196,19 +176,10 @@ func (m Model) renderConfirmDelete() string {
 		return errorStyle.Render("Error: " + err.Error())
 	}
 
-	var hostDisplay string
-	if host.Name != "" && host.IP != "" {
-		hostDisplay = host.Name + ", " + host.IP
-	} else if host.Name != "" {
-		hostDisplay = host.Name
-	} else {
-		hostDisplay = host.IP
-	}
-
 	var s string
 	s += titleStyle.Render("Confirm Deletion") + "\n\n"
 	s += normalStyle.Render("Delete this host?\n\n")
-	s += selectedStyle.Render(hostDisplay) + "\n\n"
+	s += selectedStyle.Render(host.DisplayName()) + "\n\n"
 	s += footerStyle.Render("Press Enter or 'y' to confirm, 'n' to cancel")
 
 	return s
@@ -340,8 +311,6 @@ func (m *Model) filterHosts() {
 
 type errMsg struct{ err error }
 
-func (e errMsg) Error() string { return e.err.Error() }
-
 type hostsLoadedMsg struct{ hosts []string }
 
 func loadHosts() tea.Cmd {
@@ -361,10 +330,4 @@ func saveHosts(hosts []string) tea.Cmd {
 		}
 		return nil
 	}
-}
-
-func tick() tea.Cmd {
-	return tea.Tick(time.Second, func(t time.Time) tea.Msg {
-		return TickMsg(t)
-	})
 }

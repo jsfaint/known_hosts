@@ -3,8 +3,8 @@ package main
 import (
 	"errors"
 	"os"
+	"strings"
 	"testing"
-	"time"
 
 	tea "github.com/charmbracelet/bubbletea"
 )
@@ -57,15 +57,6 @@ func TestModelUpdate(t *testing.T) {
 				mode: viewList,
 			},
 			msg:       hostsLoadedMsg{hosts: []string{"github.com ssh-rsa key"}},
-			wantMode:  viewList,
-			wantError: false,
-		},
-		{
-			name: "handle tick message",
-			model: Model{
-				mode: viewList,
-			},
-			msg:       TickMsg(time.Now()),
 			wantMode:  viewList,
 			wantError: false,
 		},
@@ -182,7 +173,7 @@ func TestModelView(t *testing.T) {
 			view := tt.model.View()
 
 			for _, expected := range tt.wantContains {
-				if !contains(view, expected) {
+				if !strings.Contains(view, expected) {
 					t.Errorf("Model.View() should contain %q, got:\n%s", expected, view)
 				}
 			}
@@ -607,34 +598,18 @@ func TestSaveHosts(t *testing.T) {
 
 	contentStr := string(content)
 	for _, host := range hosts {
-		if !contains(contentStr, host) {
+		if !strings.Contains(contentStr, host) {
 			t.Errorf("saveHosts() should contain host: %s", host)
 		}
 	}
 }
 
-func TestTick(t *testing.T) {
-	cmd := tick()
-
-	if cmd == nil {
-		t.Error("tick() should return a command")
-	}
-
-	// Execute the command to get TickMsg
-	msg := cmd()
-	_, ok := msg.(TickMsg)
-	if !ok {
-		t.Errorf("tick() should return TickMsg, got %T", msg)
-	}
-}
-
 func TestErrMsg(t *testing.T) {
 	testErr := errors.New("test error")
-	errMsg := errMsg{err: testErr}
+	emsg := errMsg{err: testErr}
 
-	errStr := errMsg.Error()
-	if errStr != testErr.Error() {
-		t.Errorf("errMsg.Error() = %v, want %v", errStr, testErr.Error())
+	if emsg.err != testErr {
+		t.Errorf("errMsg.err = %v, want %v", emsg.err, testErr)
 	}
 }
 
@@ -647,7 +622,7 @@ func TestRenderListWithIPAndName(t *testing.T) {
 
 	view := model.View()
 
-	if !contains(view, "myserver, 192.168.1.1") {
+	if !strings.Contains(view, "myserver, 192.168.1.1") {
 		t.Error("renderList() should display host with name and IP")
 	}
 }
@@ -661,7 +636,7 @@ func TestRenderListWithNameOnly(t *testing.T) {
 
 	view := model.View()
 
-	if !contains(view, "github.com") {
+	if !strings.Contains(view, "github.com") {
 		t.Error("renderList() should display host with name only")
 	}
 }
@@ -675,21 +650,7 @@ func TestRenderListWithIPOnly(t *testing.T) {
 
 	view := model.View()
 
-	if !contains(view, "192.168.1.1") {
+	if !strings.Contains(view, "192.168.1.1") {
 		t.Error("renderList() should display host with IP only")
 	}
-}
-
-// Helper function
-func contains(s, substr string) bool {
-	return len(s) >= len(substr) && (s == substr || len(s) > len(substr) && findInString(s, substr))
-}
-
-func findInString(s, substr string) bool {
-	for i := 0; i <= len(s)-len(substr); i++ {
-		if s[i:i+len(substr)] == substr {
-			return true
-		}
-	}
-	return false
 }
