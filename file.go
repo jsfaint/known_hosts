@@ -29,15 +29,28 @@ func Exists() bool {
 }
 
 func stringToLine(input string) (lines []string) {
-	// Normalize line endings: handle \r\n (Windows), \n (Unix), \r (old Mac)
-	input = strings.ReplaceAll(input, "\r\n", "\n")
-	input = strings.ReplaceAll(input, "\r", "\n")
-	tmp := strings.SplitSeq(input, "\n")
+	start := 0
+	for i := 0; i < len(input); i++ {
+		if input[i] != '\n' && input[i] != '\r' {
+			continue
+		}
 
-	for v := range tmp {
-		v = strings.TrimSpace(v)
-		if v != "" { // Skip empty lines
-			lines = append(lines, v)
+		line := strings.TrimSpace(input[start:i])
+		if line != "" {
+			lines = append(lines, line)
+		}
+
+		if input[i] == '\r' && i+1 < len(input) && input[i+1] == '\n' {
+			i++
+		}
+		start = i + 1
+	}
+
+	// Last line (after final newline or no trailing newline)
+	if start < len(input) {
+		line := strings.TrimSpace(input[start:])
+		if line != "" {
+			lines = append(lines, line)
 		}
 	}
 
@@ -77,36 +90,8 @@ func SaveFile(input []string) error {
 	return os.WriteFile(name, []byte(str), perm)
 }
 
-// Search finds hosts matching the pattern in the list.
-//
-// This function performs fuzzy matching on the host identifier only.
-//
-// Parameter Format:
-//
-//	Input: Hostname or IP address (partial match supported)
-//	Example: "github", "192.168", "git"
-//
-// Matching Behavior:
-//   - Searches only in the host part (first space-delimited field)
-//   - Uses substring matching (contains, not exact)
-//   - Case-sensitive
-//   - Returns complete host lines for all matches
-//
-// Examples:
-//
-//	// Find all hosts containing "git"
-//	results := Search(hosts, "git")
-//	// Returns: ["github.com ssh-rsa...", "gitlab.com ssh-rsa..."]
-//
-//	// Find hosts by IP prefix
-//	results := Search(hosts, "192.168")
-//	// Returns: ["192.168.1.1 ssh-rsa...", "192.168.1.2 ssh-rsa..."]
-//
-// Design Note:
-// Unlike Delete(), Search() only supports fuzzy matching because:
-// - Search is inherently about finding partial matches
-// - Exact match would defeat the purpose of search
-// - TUI search bar uses this for filtering as you type
+// Search finds hosts matching the pattern in the host part (first space-delimited field).
+// Uses substring (contains) matching. Only matches against the host identifier, not key type or public key.
 func Search(input []string, pattern string) []string {
 	var out []string
 
@@ -126,29 +111,25 @@ func Search(input []string, pattern string) []string {
 	return out
 }
 
+// deleteMatches removes entries matching the given pattern.
+// Priority 1: exact match on full line. Priority 2: exact match on host part only.
+// Returns both remaining and removed slices.
+// SECURITY: uses exact match (not Contains) to prevent accidental bulk deletion.
 func deleteMatches(input []string, pattern string) (remaining []string, removed []string) {
 	for _, v := range input {
-		// Skip empty lines
 		if v == "" {
 			continue
 		}
 
-		// Priority 1: Exact match with full line (TUI usage)
 		if v == pattern {
 			removed = append(removed, v)
 			continue
 		}
 
-		// Priority 2: Exact match on host part (CLI usage) - SECURITY: NO fuzzy matching
 		parts := strings.Fields(v)
-		if len(parts) > 0 {
-			hostPart := parts[0]
-			// SECURITY: Use exact match instead of strings.Contains
-			// This prevents "git" from matching "github.com" or "gitlab.com"
-			if hostPart == pattern {
-				removed = append(removed, v)
-				continue
-			}
+		if len(parts) > 0 && parts[0] == pattern {
+			removed = append(removed, v)
+			continue
 		}
 
 		remaining = append(remaining, v)
@@ -157,45 +138,7 @@ func deleteMatches(input []string, pattern string) (remaining []string, removed 
 	return remaining, removed
 }
 
-// Delete removes hosts from the list based on the pattern.
-//
-// This function supports two parameter formats with SECURITY-FIRST matching:
-//
-// Mode 1: Exact Full Line Match (Priority 1)
-//
-//	Input: Full host line including public key
-//	Example: "github.com ssh-rsa AAAAB3NzaC1yc2E..."
-//	Use case: TUI deletion, when you have the complete host entry
-//	Behavior: String equality check on the full line
-//
-// Mode 2: Exact Host Part Match (Priority 2, fallback)
-//
-//	Input: Hostname or IP address only (NO fuzzy matching)
-//	Example: "github.com" or "192.168.1.1" or "myserver,192.168.1.1"
-//	Use case: CLI deletion, when you only know the host identifier
-//	Behavior: Exact match on the host part (before first space)
-//
-// SECURITY IMPORTANT:
-// - CLI mode uses EXACT match only to prevent accidental bulk deletion
-// - Pattern "git" will NOT delete "github.com" or "gitlab.com"
-// - Use "github.com" to delete exactly that host
-// - Use "myserver,192.168.1.1" to delete that specific entry
-//
-// Matching Priority:
-// 1. Exact full line match is checked first
-// 2. Exact host part match is checked if exact match fails
-//
-// Examples:
-//
-//	// TUI usage (exact match)
-//	hosts := Delete(hosts, "github.com ssh-rsa AAAAB3NzaC1yc2E...")
-//
-//	// CLI usage (exact host match)
-//	hosts := Delete(hosts, "github.com")
-//	// This will NOT delete "gitlab.com" or "github.com.cn"
-//
-//	// CLI usage with hostname,IP format
-//	hosts := Delete(hosts, "myserver,192.168.1.1")
+// Delete removes entries matching the pattern. See deleteMatches for matching rules.
 func Delete(input []string, pattern string) []string {
 	remaining, _ := deleteMatches(input, pattern)
 	return remaining

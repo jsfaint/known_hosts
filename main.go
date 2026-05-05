@@ -118,20 +118,6 @@ func parseArgs() (opt opts) {
 	return opt
 }
 
-func displayHostIdentifier(line string) string {
-	host, err := NewHost(line)
-	if err == nil {
-		return host.DisplayName()
-	}
-
-	parts := strings.Fields(line)
-	if len(parts) > 0 {
-		return parts[0]
-	}
-
-	return line
-}
-
 func previewDelete(hosts []string, host string) {
 	_, removed := deleteMatches(hosts, host)
 	if len(removed) == 0 {
@@ -139,14 +125,18 @@ func previewDelete(hosts []string, host string) {
 		return
 	}
 
-	fmt.Printf("Dry run: would remove %d entr", len(removed))
-	if len(removed) == 1 {
-		fmt.Println("y:")
-	} else {
-		fmt.Println("ies:")
+	plural := "y"
+	if len(removed) > 1 {
+		plural = "ies"
 	}
+	fmt.Printf("Dry run: would remove %d entr%s:\n", len(removed), plural)
 	for _, line := range removed {
-		fmt.Printf("- %s\n", displayHostIdentifier(line))
+		h, err := NewHost(line)
+		if err == nil {
+			fmt.Printf("- %s\n", h.DisplayName())
+		} else {
+			fmt.Printf("- %s\n", line)
+		}
 	}
 }
 
@@ -216,7 +206,11 @@ func ensureKnownHostsExists() error {
 		return nil
 	}
 
-	return fmt.Errorf("known_hosts file not found in ~/.ssh/known_hosts; connect to a host first or create it manually")
+	path, err := GetFilePath()
+	if err != nil {
+		return fmt.Errorf("cannot determine known_hosts path: %w", err)
+	}
+	return fmt.Errorf("known_hosts file not found at %s; connect to a host first or create it manually", path)
 }
 
 func main() {

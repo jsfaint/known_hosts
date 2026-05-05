@@ -10,14 +10,14 @@ import (
 
 // Model represents the TUI application state
 type Model struct {
-	hosts       []string // List of all hosts
-	filtered    []string // Filtered hosts (for search)
-	cursor      int      // Current selected index
-	search      string   // Current search query
-	isSearching bool     // Whether in search mode
-	mode        viewMode // Current view mode
-	err         error    // Error state
-	status      string   // Last user-visible status message
+	hosts       []string
+	filtered    []string
+	cursor      int
+	search      string
+	isSearching bool
+	mode        viewMode
+	err         error
+	status      string
 }
 
 type viewMode int
@@ -31,7 +31,6 @@ func (m Model) Init() tea.Cmd {
 	return loadHosts()
 }
 
-// Update handles incoming messages
 func (m Model) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 	switch msg := msg.(type) {
 	case tea.KeyMsg:
@@ -47,7 +46,6 @@ func (m Model) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 	return m, nil
 }
 
-// View renders the TUI
 func (m Model) View() string {
 	if m.err != nil {
 		return m.renderError()
@@ -217,36 +215,18 @@ func (m Model) handleListKeyMsg(msg tea.KeyMsg) (tea.Model, tea.Cmd) {
 
 	case tea.KeyRunes:
 		if m.isSearching {
-			switch msg.String() {
-			case "/":
-				// Ignore repeat slash
-			case "q":
-				m.isSearching = false
-				m.search = ""
-				m.filtered = m.hosts
-			case "\x7f": // Backspace
-				if len(m.search) > 0 {
-					m.search = m.search[:len(m.search)-1]
-					m.filterHosts()
-				}
-			case "\r": // Enter
-				m.isSearching = false
-			default:
-				m.search += msg.String()
-				m.filterHosts()
-			}
-		} else {
-			switch msg.String() {
-			case "/":
-				m.isSearching = true
-				m.search = ""
-				m.cursor = 0
-			case "q":
-				return m, tea.Quit
-			case "d":
-				if len(m.filtered) > 0 {
-					m.mode = viewConfirmDelete
-				}
+			return m.handleSearchInput(msg)
+		}
+		switch msg.String() {
+		case "/":
+			m.isSearching = true
+			m.search = ""
+			m.cursor = 0
+		case "q":
+			return m, tea.Quit
+		case "d":
+			if len(m.filtered) > 0 {
+				m.mode = viewConfirmDelete
 			}
 		}
 
@@ -256,6 +236,27 @@ func (m Model) handleListKeyMsg(msg tea.KeyMsg) (tea.Model, tea.Cmd) {
 		}
 	}
 
+	return m, nil
+}
+
+func (m Model) handleSearchInput(msg tea.KeyMsg) (tea.Model, tea.Cmd) {
+	switch msg.String() {
+	case "/":
+	case "q":
+		m.isSearching = false
+		m.search = ""
+		m.filtered = m.hosts
+	case "\x7f": // Backspace
+		if len(m.search) > 0 {
+			m.search = m.search[:len(m.search)-1]
+			m.filterHosts()
+		}
+	case "\r":
+		m.isSearching = false
+	default:
+		m.search += msg.String()
+		m.filterHosts()
+	}
 	return m, nil
 }
 
@@ -290,7 +291,14 @@ func (m Model) deleteCurrentSelection() (tea.Model, tea.Cmd) {
 		m.cursor = len(m.filtered) - 1
 	}
 	m.mode = viewList
-	m.status = "Deleted " + displayHostIdentifier(hostLine)
+
+	// Build status message
+	h, err := NewHost(hostLine)
+	if err == nil {
+		m.status = "Deleted " + h.DisplayName()
+	} else {
+		m.status = "Deleted " + hostLine
+	}
 	return m, saveHosts(m.hosts)
 }
 
