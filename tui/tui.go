@@ -1,4 +1,5 @@
-package main
+// Package tui provides a terminal UI for managing known_hosts entries.
+package tui
 
 import (
 	"fmt"
@@ -6,9 +7,12 @@ import (
 
 	tea "github.com/charmbracelet/bubbletea"
 	"github.com/charmbracelet/lipgloss"
+
+	"github.com/jsfaint/known_hosts/host"
+	"github.com/jsfaint/known_hosts/knownhosts"
 )
 
-// Model represents the TUI application state
+// Model represents the TUI application state.
 type Model struct {
 	hosts       []string
 	filtered    []string
@@ -26,6 +30,23 @@ const (
 	viewList viewMode = iota
 	viewConfirmDelete
 )
+
+// Run starts the interactive terminal UI for managing known hosts.
+func Run(hosts []string) error {
+	p := tea.NewProgram(
+		Model{
+			hosts:    hosts,
+			filtered: hosts,
+			mode:     viewList,
+		},
+		tea.WithAltScreen(),
+	)
+
+	if _, err := p.Run(); err != nil {
+		return err
+	}
+	return nil
+}
 
 func (m Model) Init() tea.Cmd {
 	return loadHosts()
@@ -132,12 +153,12 @@ func (m Model) renderList() string {
 				cursor = ">"
 			}
 
-			host, err := NewHost(hostLine)
+			h, err := host.NewHost(hostLine)
 			if err != nil {
 				continue
 			}
 
-			line := cursor + " " + host.DisplayName()
+			line := cursor + " " + h.DisplayName()
 			if i == m.cursor {
 				s.WriteString(selectedStyle.Render(line))
 			} else {
@@ -169,7 +190,7 @@ func (m Model) renderSummary() string {
 // renderConfirmDelete displays delete confirmation
 func (m Model) renderConfirmDelete() string {
 	hostLine := m.filtered[m.cursor]
-	host, err := NewHost(hostLine)
+	h, err := host.NewHost(hostLine)
 	if err != nil {
 		return errorStyle.Render("Error: " + err.Error())
 	}
@@ -177,7 +198,7 @@ func (m Model) renderConfirmDelete() string {
 	var s string
 	s += titleStyle.Render("Confirm Deletion") + "\n\n"
 	s += normalStyle.Render("Delete this host?\n\n")
-	s += selectedStyle.Render(host.DisplayName()) + "\n\n"
+	s += selectedStyle.Render(h.DisplayName()) + "\n\n"
 	s += footerStyle.Render("Press Enter or 'y' to confirm, 'n' to cancel")
 
 	return s
@@ -283,8 +304,8 @@ func (m Model) handleConfirmKeyMsg(msg tea.KeyMsg) (tea.Model, tea.Cmd) {
 
 func (m Model) deleteCurrentSelection() (tea.Model, tea.Cmd) {
 	hostLine := m.filtered[m.cursor]
-	m.hosts = Delete(m.hosts, hostLine)
-	m.filtered = Delete(m.filtered, hostLine)
+	m.hosts = knownhosts.Delete(m.hosts, hostLine)
+	m.filtered = knownhosts.Delete(m.filtered, hostLine)
 	if len(m.filtered) == 0 {
 		m.cursor = 0
 	} else if m.cursor >= len(m.filtered) {
@@ -293,7 +314,7 @@ func (m Model) deleteCurrentSelection() (tea.Model, tea.Cmd) {
 	m.mode = viewList
 
 	// Build status message
-	h, err := NewHost(hostLine)
+	h, err := host.NewHost(hostLine)
 	if err == nil {
 		m.status = "Deleted " + h.DisplayName()
 	} else {
@@ -309,7 +330,7 @@ func (m *Model) filterHosts() {
 		return
 	}
 
-	m.filtered = Search(m.hosts, m.search)
+	m.filtered = knownhosts.Search(m.hosts, m.search)
 	if len(m.filtered) > 0 {
 		m.cursor = 0
 	}
@@ -323,7 +344,7 @@ type hostsLoadedMsg struct{ hosts []string }
 
 func loadHosts() tea.Cmd {
 	return func() tea.Msg {
-		hosts, err := ReadFile()
+		hosts, err := knownhosts.ReadFile()
 		if err != nil {
 			return errMsg{err}
 		}
@@ -333,7 +354,7 @@ func loadHosts() tea.Cmd {
 
 func saveHosts(hosts []string) tea.Cmd {
 	return func() tea.Msg {
-		if err := SaveFile(hosts); err != nil {
+		if err := knownhosts.SaveFile(hosts); err != nil {
 			return errMsg{err}
 		}
 		return nil

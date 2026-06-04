@@ -1,4 +1,5 @@
-package main
+// Package host provides Host parsing and representation for known_hosts entries.
+package host
 
 import (
 	"fmt"
@@ -6,6 +7,7 @@ import (
 	"strings"
 )
 
+// Host represents a known hosts entry parsed from a single line.
 type Host struct {
 	Name    string
 	IP      string
@@ -22,7 +24,6 @@ func (h *Host) getNameIP(value string) {
 			h.Name = name[0]
 		} else {
 			h.IP = name[0]
-
 		}
 	case 2:
 		h.Name = name[0]
@@ -42,6 +43,8 @@ func (h *Host) DisplayName() string {
 	return h.IP
 }
 
+// NewHost parses a single known_hosts line into a Host struct.
+// The line must have exactly 3 space-separated fields: hostpart keytype pubkey.
 func NewHost(input string) (host Host, err error) {
 	keys := strings.Split(input, " ")
 	if len(keys) != 3 {

@@ -1,13 +1,38 @@
-package main
+package tui
 
 import (
 	"errors"
 	"os"
+	"runtime"
 	"strings"
 	"testing"
 
 	tea "github.com/charmbracelet/bubbletea"
 )
+
+// setHomeDir sets the user home directory environment variable for testing.
+func setHomeDir(t *testing.T, newDir string) func() {
+	var envVar string
+
+	if runtime.GOOS == "windows" {
+		envVar = "USERPROFILE"
+	} else {
+		envVar = "HOME"
+	}
+
+	oldVal := os.Getenv(envVar)
+	if err := os.Setenv(envVar, newDir); err != nil {
+		t.Fatalf("Failed to set %s: %v", envVar, err)
+	}
+
+	return func() {
+		if oldVal == "" {
+			_ = os.Unsetenv(envVar)
+		} else {
+			_ = os.Setenv(envVar, oldVal)
+		}
+	}
+}
 
 func TestModelInit(t *testing.T) {
 	m := Model{
@@ -290,7 +315,7 @@ func TestHandleListKeyMsg(t *testing.T) {
 				isSearching: true,
 				mode:        viewList,
 			},
-			msg:        tea.KeyMsg{Type: tea.KeyRunes, Runes: []rune{127}}, // Backspace
+			msg:        tea.KeyMsg{Type: tea.KeyRunes, Runes: []rune{127}},
 			wantCursor: 0,
 			wantMode:   viewList,
 			wantSearch: "g",
@@ -363,7 +388,7 @@ func TestHandleConfirmKeyMsg(t *testing.T) {
 			},
 			msg:          tea.KeyMsg{Type: tea.KeyRunes, Runes: []rune{'y'}},
 			wantMode:     viewList,
-			wantFiltered: 0, // All filtered hosts deleted (exact match with full line)
+			wantFiltered: 0,
 			wantStatus:   "Deleted github.com",
 		},
 		{
@@ -376,7 +401,7 @@ func TestHandleConfirmKeyMsg(t *testing.T) {
 			},
 			msg:          tea.KeyMsg{Type: tea.KeyRunes, Runes: []rune{'Y'}},
 			wantMode:     viewList,
-			wantFiltered: 0, // Delete function matches exact full line
+			wantFiltered: 0,
 			wantStatus:   "Deleted github.com",
 		},
 		{
@@ -516,7 +541,6 @@ func TestLoadHosts(t *testing.T) {
 		sshDir := tmpDir + "/.ssh"
 		testFile := sshDir + "/known_hosts"
 
-		// Create .ssh directory
 		if err := os.MkdirAll(sshDir, 0755); err != nil {
 			t.Fatalf("Failed to create .ssh directory: %v", err)
 		}
@@ -524,7 +548,6 @@ func TestLoadHosts(t *testing.T) {
 		restoreHome := setHomeDir(t, tmpDir)
 		defer restoreHome()
 
-		// Create test file
 		testContent := "github.com ssh-rsa key1\ngitlab.com ssh-rsa key2\n"
 		if err := os.WriteFile(testFile, []byte(testContent), 0644); err != nil {
 			t.Fatalf("Failed to create test file: %v", err)
@@ -549,7 +572,6 @@ func TestLoadHosts(t *testing.T) {
 		restoreHome := setHomeDir(t, tmpDir)
 		defer restoreHome()
 
-		// Don't create .ssh directory, this should cause an error
 		cmd := loadHosts()
 		msg := cmd()
 
@@ -569,7 +591,6 @@ func TestSaveHosts(t *testing.T) {
 	sshDir := tmpDir + "/.ssh"
 	testFile := sshDir + "/known_hosts"
 
-	// Create .ssh directory
 	if err := os.MkdirAll(sshDir, 0755); err != nil {
 		t.Fatalf("Failed to create .ssh directory: %v", err)
 	}
@@ -582,7 +603,6 @@ func TestSaveHosts(t *testing.T) {
 	cmd := saveHosts(hosts)
 	msg := cmd()
 
-	// saveHosts returns nil on success
 	if msg != nil {
 		errMsg, ok := msg.(errMsg)
 		if ok {
@@ -590,7 +610,6 @@ func TestSaveHosts(t *testing.T) {
 		}
 	}
 
-	// Verify file was created
 	content, err := os.ReadFile(testFile)
 	if err != nil {
 		t.Fatalf("Failed to read saved file: %v", err)
@@ -610,47 +629,5 @@ func TestErrMsg(t *testing.T) {
 
 	if emsg.err != testErr {
 		t.Errorf("errMsg.err = %v, want %v", emsg.err, testErr)
-	}
-}
-
-func TestRenderListWithIPAndName(t *testing.T) {
-	model := Model{
-		filtered: []string{"myserver,192.168.1.1 ssh-rsa key"},
-		cursor:   0,
-		mode:     viewList,
-	}
-
-	view := model.View()
-
-	if !strings.Contains(view, "myserver, 192.168.1.1") {
-		t.Error("renderList() should display host with name and IP")
-	}
-}
-
-func TestRenderListWithNameOnly(t *testing.T) {
-	model := Model{
-		filtered: []string{"github.com ssh-rsa key"},
-		cursor:   0,
-		mode:     viewList,
-	}
-
-	view := model.View()
-
-	if !strings.Contains(view, "github.com") {
-		t.Error("renderList() should display host with name only")
-	}
-}
-
-func TestRenderListWithIPOnly(t *testing.T) {
-	model := Model{
-		filtered: []string{"192.168.1.1 ssh-rsa key"},
-		cursor:   0,
-		mode:     viewList,
-	}
-
-	view := model.View()
-
-	if !strings.Contains(view, "192.168.1.1") {
-		t.Error("renderList() should display host with IP only")
 	}
 }

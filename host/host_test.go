@@ -1,4 +1,4 @@
-package main
+package host
 
 import (
 	"reflect"
@@ -144,7 +144,6 @@ func TestNewHost(t *testing.T) {
 }
 
 func TestHost_StringRepresentation(t *testing.T) {
-	// Test Host struct fields
 	h := Host{
 		Name:    "github.com",
 		IP:      "192.168.1.1",
@@ -167,21 +166,39 @@ func TestHost_StringRepresentation(t *testing.T) {
 }
 
 func TestHost_EmptyFields(t *testing.T) {
-	// Test with empty fields
 	h1 := Host{}
 	if h1.Name != "" || h1.IP != "" || h1.KeyType != "" || h1.PubKey != "" {
 		t.Errorf("Empty Host struct should have empty fields, got: %v", h1)
 	}
 
-	// Test with only name
 	h2 := Host{Name: "example.com"}
 	if h2.Name != "example.com" || h2.IP != "" {
 		t.Errorf("Host with only name should have empty IP, got: %v", h2)
 	}
 
-	// Test with only IP
 	h3 := Host{IP: "192.168.1.1"}
 	if h3.Name != "" || h3.IP != "192.168.1.1" {
 		t.Errorf("Host with only IP should have empty Name, got: %v", h3)
+	}
+}
+
+func TestDisplayName(t *testing.T) {
+	tests := []struct {
+		name string
+		host Host
+		want string
+	}{
+		{"name and IP", Host{Name: "myserver", IP: "192.168.1.1"}, "myserver, 192.168.1.1"},
+		{"name only", Host{Name: "github.com"}, "github.com"},
+		{"IP only", Host{IP: "192.168.1.1"}, "192.168.1.1"},
+		{"empty", Host{}, ""},
+	}
+
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			if got := tt.host.DisplayName(); got != tt.want {
+				t.Errorf("DisplayName() = %q, want %q", got, tt.want)
+			}
+		})
 	}
 }
